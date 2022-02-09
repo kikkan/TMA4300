@@ -1,0 +1,294 @@
+---
+title: "Project 2"
+author: "Erling og Christian"
+date: "03 02 2022"
+output: 
+  bookdown::pdf_document2:
+    
+    number_sections: false
+  # pdf_document:
+  #   toc: no
+  #   toc_depth: '2'
+subtitle: Computer Intensive Statistical Methods
+urlcolor: blue
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE,tidy=TRUE,message=FALSE,warning=FALSE,
+                      strip.white=TRUE,
+                      prompt=FALSE,
+                      cache=TRUE, 
+                      size="scriptsize",
+                      fig.width=5, 
+                      fig.height=5, 
+                      fig.align = "center")
+```
+
+# Caption
+
+## Problem C: Monte Carlo integration and variance reduction
+
+Here we use Monte Carlo integration to estimate $\theta = P(X>4)$ when $X \sim N(0,1)$.
+
+\textcolor{green}{problem introduction. is it needed? thought it looked nice}\\
+In this problem we consider Monte Carlo integration and the importance sampling for variance reduction.
+
+### 1
+Let $h(X) = I(X>4)$, where $I$ is the indicator function, such that
+$$
+\begin{split}
+  E[h(X)] &= \int^{\infty}_{-\infty} h(x) f(x) dx \\
+  &= \int^{\infty}_{-\infty} I(x>4)f(x)dx \\
+  &= P(X>4) \\
+  &= \theta.
+\end{split}
+$$
+Then, a Monte Carlo Estimate of $\theta$ is given by
+$$
+\hat \theta_{MC} = \frac1n \sum^{n}_{i=1} h(x_i).
+$$
+
+Drawing $n = 100000$ samples from the standard distribution to estimate $\theta$ by MC.
+```{r stdNorm, options}
+generate_from_normal <- function(n)
+{
+  u1<-runif(n)
+  u2<-runif(n)
+  r<-sqrt(-2*log(u1))
+  x_1<-2*pi*u2
+  x=r*cos(x_1)
+  return(x)
+}
+```
+Now we will find a $1-\alpha$ confidence for $\theta$ based on our sample set. First we need the expected value of the Monte Carlo estimator
+$$
+\begin{aligned}
+  E[\hat \theta] &= E[\frac{1}{n} \sum_{i=1}^n h(x_i)] \\
+  &= \frac{1}{n} \sum^{n}_{i=1}{\theta} \\
+  &= \theta,
+\end{aligned}
+$$
+and it's variance
+$$
+\begin{aligned}
+  Var(\hat \theta) &= Var(\frac1n \sum^{n}_{i=1}{h(x_i)})  \\
+  &= \frac{1}{n^2} \sum^{n}_{i=1}{Var(h(x_i))} \\
+  &= \frac1n \frac{1}{n-1} \sum^{n}_{i=1}{(h(x_i) - \hat \theta)^2}.
+\end{aligned}
+$$
+As for the confidence interval we have the statistic
+$$
+T_{MC} = \frac{\hat \theta_{MC} - \theta}{\sqrt{\hat {Var}(\hat \theta_{MC})}} 
+\sim t_{n-1}
+$$
+\textcolor{blue}{Why does the sample variance become so small?}
+```{r C1_MCconfint, options}
+set.seed(321)
+n      = 1e5
+x      = generate_from_normal(n)
+h      = x>4
+MCest  = mean(h)
+# test
+x2     = rnorm(n)
+h2     = x2>4
+theta2 = mean(h2)
+theta = pnorm(4, lower.tail = F)
+round(c(rnorm=theta2, inversion=MCest, True=theta), 7)
+
+# svMC = var(h) # Sample variance
+svMC = sum((h - MCest)^2)/(n*(n-1)) # Sample Variance
+alpha = 0.05
+t = qt(alpha/2, n-1, lower.tail = F) # (1-alpha) significance
+lwrUpr = sqrt(svMC)*t # lower and upper deviation from mean
+ciMC = MCest + c(-lwrUpr, lwrUpr)
+resultMC <- c(estimator=MCest, Confint=ciMC, Var=svMC)
+resultMC
+theta
+
+# Below is a sanity check
+# plot(density(x2), main = "Comparing built in and inversion normal")
+# lines(density(x), lty=2, col="red")
+# legend("topright",legend = c("rnorm", "Inversion"), 
+#        lty=c(1,2), col = c("black", "red"))
+```
+\textcolor{red}{Something wrong with the variance?} 
+
+
+### 2 
+Here we will use importance sampling to try to reduce the variance. The proposal distribution is
+$$
+g(x) = 
+\begin{cases}
+  cxe^{-x^2/2} &, \ x>4 \\
+  0 &,\ \text{otherwise},
+\end{cases}
+$$
+where $c$ is a normalizing constant.
+
+\textcolor{red}{Proposing to write importance sampling stuff here:}
+
+Now, let $x_1,...,x_n \stackrel{i.i.d}{\sim} g(x)$ and let the weights $w(x_i) = w_i = f(x_i)/g(x_i) = f_i/g_i$. \textcolor{red}{(where $w_i, f_i$ and $g_i$ are function evaluations at $x_i$)}. Then, the importance sampling estimator of $\theta$ is
+$$
+\hat \theta_{IS} = \frac{ \sum^{n}_{i=1}{h_i w_i}}{n}. 
+$$
+
+
+
+Since we will sample from $g$ we need to find it's cdf
+$$
+\begin{aligned}
+  G(x) &= \int^{x}_{4}{cye^{-y^2/2}}dy \\ 
+  &= \int^{x^2/2}_{8}{ce^{-u}du} \\
+  &=\left[ -ce^{-u}\right]_{8}^{x^2/2} \\
+  &= c(e^{-8} - e^{-x^2/2}).
+\end{aligned}
+$$
+Since $g$ is a distribution, $\int^{\infty}_{4}{g(x)}dx = 1$. Thus, we find $c$ by considering
+$$
+\begin{split}
+  \left. c(e^{-8} - e^{-x^2/2}) \right |_{x=\infty} &=1\\
+  c &= e^{8}.
+\end{split}
+$$
+Furthermore, $G(x) = 1 - e^{8-x^2/2}$.
+
+Inversion method for sampling: \\
+Then, by inversion method, we can sample from $g$ by solving $U=G(x)\sim Unif(0,1)$ for $x$. We get
+$$
+\begin{split}
+  U &= 1 - e^{8-x^2/2} \\
+  -2ln(1-U) &= x^2 - 8 \\
+  x &= \sqrt{8 - 2ln(1-U)},
+\end{split}
+$$
+that is, inserting randomly selected $U\sim Unif(0,1)$ admits samples from $X\sim g$. \textcolor{red}{Should we include this short chunk here or at the end?} 
+```{r sampleExp, options}
+# expSampler <- function(n){
+#   u = runif(n)
+#   return(sqrt(16-2*log(1-u)))
+# }
+# gx <- expSampler(n)
+```
+
+
+We also need the expected value and sample variance of the importance estimator for the $(1-\alpha)%$ confidence interval, so
+
+\textcolor{red}{or: For the (1-$\alpha$) confidence interval we also need the expected value and the sample variance of the importance estimator hat$\theta$.}
+
+\textcolor{blue}{is it really integral when x seem do be discrete, $x_i$?} 
+
+$$
+\begin{split}
+  E[\hat \theta_{IS}] &= E \left[\frac{ \sum^{n}_{i=1}{h_i w_i}}{n} \right] 
+  \\
+  &= \frac{1}{n} \sum^{n}_{i=1}{ \int^{\infty}_{0}{h_i \frac{f_i}{g_i} g_i dx}} 
+  \\
+  &= \frac1n \sum^{n}_{i=1} \int^{\infty}_{0} h_i f_i dx \\
+  &= \frac1n \sum^{n}_{i=1} E[h_i] \\
+  &= \frac1n n\theta \\
+  &= \theta,
+\end{split}
+$$
+and the sample variance \textcolor{blue}{More steps in calculation?} 
+$$
+\begin{split}
+  Var(\hat \theta_{IS}) &= Var \left(\frac{ \sum^{n}_{i=1}{h_i w_i}}{n} \right) 
+  \\
+  &= \frac{1}{n(n-1)} \sum^{n}_{i=1} \left( h_i w_i - \sum^{n}_{i=1} \frac{h_iw_i}{n} \right)^2 
+  \\
+  &= \frac{1}{n(n-1)} \sum^{n}_{i=1}\left( h_i w_i - \hat \theta_{IS}\right)^2
+\end{split}
+$$
+```{r expIS, options}
+expSampler <- function(n){
+  # Samples from prop fnc g
+  u = runif(n)
+  return(sqrt(16-2*log(1-u)))
+}
+
+w <- function(x) {
+  f = dnorm(x)
+  g = ifelse(x>4, x*exp(8-0.5*x^2),0)
+  return(f/g)
+}
+
+gx        = expSampler(n) # Sample from proposal
+gh        = (gx>4)*1
+ISest     = mean(gh*w(gx))
+svIS      = sum((gh*w(gx) - ISest)^2)/(n*(n-1))
+ISconfint = ISest + c(-t*sqrt(svIS), t*svIS)
+# Results
+resultIS <- c(ISestimate=ISest, confint=ISconfint, var=svIS)
+results <- rbind(MC=resultMC, IS=resultIS)
+results
+theta
+```
+Here we see that importance sampling has reduced the variance by a factor of $Var(\hat\theta_{MC}) / Var(\hat \theta_{IS}) =$ `svMC/svIS` $=$ `r svMC/svIS`. Also, the importance sample estimator is much closer to the real value. 
+
+\textcolor{red}{Not entirely sure how to compute how many more samples we would need, since the error influences.} 
+
+### 3
+Now we will combine the importance sampling with the use of antithetic variates. We start by modifying the sample generator for $g$ in task $C.2$ so that it produces $n$ pairs, $X=x_i$ and $Y=y_i$, of antithetic variates by using $u_i$ and $1-u_i$ as input to $G^{-1}$, respectively.
+```{r C3antitheticSampler, options}
+expSamplerAnti <- function(n, u=NA) {
+  u = runif(n) 
+  return(data.frame(x=sqrt(16-2*log(1-u)),
+                    y=sqrt(16-2*log(u))))
+}
+# xy <- expSamplerAnti(n)
+# gx <- ifelse(xy$x>4, xy$x*exp(8-0.5*xy$x^2),0)
+# gy <- ifelse(xy$y>4, xy$y*exp(8-0.5*xy$y^2),0)
+# plot(xy$x,gx)
+# points(xy$y,gy, col="cyan3",cex=1)
+```
+Then, the importance sample estimates for each of the pairs are
+$$
+\begin{split}
+  \hat \theta_X &= \frac1n \sum^{n}_{i=1} h(x_i)w(x_i),\\
+  \hat \theta_Y &= \frac1n \sum^{n}_{i=1} h(y_i)w(y_i),
+\end{split}
+$$
+and the antithetic sample estimator is
+$$
+\hat \theta_A = \frac{\hat \theta_X + \hat \theta_Y}{2}. 
+$$
+We also need the expected value
+$$
+\begin{split}
+  E[\hat \theta_{AS}] &= E\left[ \frac{\hat \theta_X + \hat \theta_Y}{2} \right]
+  \\
+  &= \frac{1}{2n} \sum^{n}_{i=1} (E[h(x_i)w(x_i)] + E[h(y_i)w(y_i)]) \\
+  & \stackrel{*}{=}  \frac{1}{2n} \sum^{n}_{i=1} 2\theta \\
+  &= \theta,
+\end{split}
+$$
+where $*$ since the proposal distribution evaluations cancel in each expectation. \textcolor{red}{not true or not needed?}. The variance of the estimator is
+$$
+\begin{split}
+  Var(\hat \theta_{AS}) &= \frac14(Var(\hat \theta_X) + Var(\hat \theta_Y) + 2Cov(\hat \theta_X,\hat \theta_Y))
+  \\
+  \Downarrow& \quad Var(\hat \theta_X) = Var(\hat \theta_Y) \\
+  &= \frac{(1+\rho_{XY}) S^2_{XY}}{2n}, 
+\end{split}
+$$
+where $\rho_{XY}=Cov(\hat \theta_X,\hat \theta_Y)$ and $S^2_{XY}$ is the sample variance of either estimator $\hat\theta_X$ or $\hat\theta_Y$.
+```{r C3Antithetic, options}
+set.seed(321)
+n = 5e4
+xy = expSamplerAnti(n)
+hxy = (xy>4)*1
+hwx = hxy[,"x"]*w(xy$x)
+hwy = hxy[,"y"]*w(xy$y)
+hwxy = (hwx + hwy)/2
+ASest = mean(hwxy)
+var(hwxy)
+svAS = (var(hwx) + var(hwy) + 2*cov(hwx,hwy))/4
+lwrUprAS = c(-t,t)*sqrt(svAS)
+confintAS = ASest + lwrUprAS
+resultAS <- c(ASest, confintAS, svAS)
+rbind(results, AS=resultAS)
+```
+ 
