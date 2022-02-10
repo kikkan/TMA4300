@@ -730,7 +730,7 @@ stat_function(
 
 
 ## 4.
-
+### a) {#B4a}
 
 Let $x \sim \text{Gamma}(\alpha,1)$ and $y \sim \text{Gamma}(\beta,1)$ be independent 
 and let $z=x/(x+y)$. The pdfs of $X$ and $Y$ are
@@ -1074,7 +1074,8 @@ c<-optimize(f_posterior, c(0,1), maximum = TRUE)$objective
 
 ```{r}
 
-rejection_sampling_f <-function(n){
+rejection_sampling_f <-function(n, p){
+  # p is the posterior function
   x<-vector(mode="numeric",length=n)
   num_gen=0
 for(i in 1:n)
@@ -1082,7 +1083,7 @@ for(i in 1:n)
   finished=0
 while(finished==0){
   xi<-runif(1)
-  alpha<-(1/c)*f_posterior(xi)
+  alpha<-(1/c)*p(xi)
   u<-runif(1)
   if(u<=alpha)
   {
@@ -1127,7 +1128,7 @@ posterior <-function(theta)
 
 ```{r}
 M<-10000
-theta_sampling<-rejection_sampling_f(M)$sample_f
+theta_sampling<-rejection_sampling_f(M, f_posterior)$sample_f
 
 ggplot()+
   geom_histogram(data=as.data.frame(theta_sampling),          mapping=aes(x=theta_sampling,y=..density..),
@@ -1150,7 +1151,7 @@ The estimated posterior mean of $\theta$ using Monte-Carlo integration is `r mu_
 The number of random numbers the sampling algorithm needs to generate on average is given by the total number of random numbers the the algorithm generates divided by the number of samples of $f(\theta|y)$
 
 ```{r}
-total_number<-rejection_sampling_f(M)$numbers
+total_number<-rejection_sampling_f(M, f_posterior)$numbers
 num<-total_number/10000
 ```
 The amount of random numbers needed to generate to obtain one sample of $f(\theta|y)$ is `r num`. The overall acceptance probability is given by
@@ -1171,6 +1172,34 @@ $$
 $$
 \propto (1-\theta)^{\beta-1}/B(1,5) (2+\theta)^{y_1}(1-\theta)^{y_2+y_3} \theta^{y_4}
 $$
+\textcolor{green}{D4 chris} 
 
+In section [D2](#D2) we used a uniform prior, i.e Beta$(1,1)$ prior for $\theta$. Now we will assume a Beta$(1,5)$ prior instead, that is
+$$
+\begin{split}
+  f(\theta) &= \frac{1}{B(1,5)} \theta^{1-1}(1-\theta)^{5-1} \\
+  &= \frac{1}{B(1,5)} (1-\theta)^4,
+\end{split}
+$$
+where $B$ is the beta function. Then, the posterior is
+$$
+\begin{split}
+  f(\theta|y) &= \frac{(2+\theta)^{y_1}(1-\theta)^{y_2+y_3}\theta^{y_4}(1-\theta)^4/B(1,5)}
+  {\int_0^1(2+\theta)^{y_1}(1-\theta)^{y_2+y_3}\theta^{y_4}(1-\theta)^4/B(1,5)d\theta}
+  \\
+  &\propto (2+\theta)^{y_1}(1-\theta)^{y_2+y_3 + 4}\theta^{y_4}.
+\end{split}
+$$
 
-In section [D2](#D2)
+\textcolor{blue}{add fab stuff above if needed?}
+
+```{r D4beta15prior, options}
+posterior15 <- function(theta, normalize){
+  # Posterior when prior is beta(1,5)
+  return((2 + theta)^125 * (1 - theta)^(18 + 20 + 4) * theta^(34)/normalize)
+}
+
+norm_con15 = integrate(posterior15, 0, 1)$val
+theta_sampling15 = rejection_sampling_f(M, posterior15)
+```
+
