@@ -1,16 +1,36 @@
 ---
-title: "Exercise 1"
-output: pdf_document
+title: "Project 2"
+author: "Erling og Christian"
+date: "03 02 2022"
+output: 
+  bookdown::pdf_document2:
+    toc_depth: '3'
+    number_sections: false
+  # pdf_document:
+  # #   toc: no
+  #   toc_depth: '3'
+subtitle: Computer Intensive Statistical Methods
+urlcolor: blue
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE,tidy=TRUE,message=FALSE,warning=FALSE,
+                      strip.white=TRUE,
+                      prompt=FALSE,
+                      cache=TRUE, 
+                      size="scriptsize",
+                      fig.width=5, 
+                      fig.height=5, 
+                      fig.align = "center")
 ```
 
-## Problem A: Stochastic simulation by the probabilty integral transform and bivariate techniques
+# Problem A: Stochastic simulation by the probabilty integral transform and bivariate techniques
 
 
-### 1.
+## 1.
  
 We are going to generate samples from an exponential distribution with rate parameter $\lambda$, and the number of samples is $n$. 
 Let $X \sim Exp(\lambda)$. This gives pdf and cdf 
@@ -68,7 +88,7 @@ ggplot()+
 )
 ```
 
-### 2
+## 2
 
 a)
 
@@ -119,7 +139,7 @@ Thus, the inverse of the cumulative distribution function is
 $$
 G^{-1}(y)=\left ( \frac{y(e+\alpha)}{e} \right)^{\frac{1}{\alpha}} 
 $$
-for $0<G^{-1}(y)<1 \implies 0 < y <\frac{e}{e+\alpha}.$ For $1 \leq x$, the following equation is solved for $x$
+for $0<G^{-1}(y)<1 \implies 0 < y <\frac{e}{e+\alpha}.$ For $1 \leq x$, the following eqaution is solved for $x$
 
 $$
 y=1-\frac{\alpha e^{-x+1}}{e+\alpha} \implies x=1-\ln \left(\frac{(1-y)(e+\alpha)}{\alpha} \right)=\ln \left (\frac{\alpha e}{(1-y)(e+\alpha)} \right) 
@@ -139,48 +159,53 @@ When $x=\infty$, $y=1.$ Therefore the inverse cumulative function is
 The inversion method is used to generate samples from $g$.
 
 ```{r}
-generate_function <-function(n, alpha)
-{
-  u1<-runif(n/2,0,exp(1)/(alpha+exp(1)))
-  u2<-runif(n/2,1-(exp(1)/(alpha+exp(1))),1)
-  x1<-(u1*((alpha+exp(1)))/exp(1))^(1/alpha)
-  x2<-log((alpha+exp(1))/((1-u2)*(alpha+exp(1))))
-  x<-append(x1,x2)
-}
+  sample_g = function(n, alpha) {
+    c = (alpha * exp(1)) / (alpha + exp(1))
+    u = runif(n)
+    samples = vector(length=n)
+    samples[u < c/alpha] = (alpha/c*u[u < c/alpha])^(1/alpha)
+    
+    samples[u >= c/alpha] = log(c / (1 - u[u >= c/alpha]))
+    return(samples)
+  }
 ```
 
 The result for $\alpha=2$ and $n=10000$ is plotted against the theoretical distribution.
 
 ```{r}
 
-theo_gx <- function(x, alpha) {
-const <- alpha * exp(1) / (alpha + exp(1)) # Normalizing constant
-func <- rep(0, length(x)) # Vector of zeros of same length as x
-left <- x > 0 & x < 1 # The PDF has one value for 0 < x < 1
-right <- x >= 1 # ... and one value for x >= 1
-func[left] <- const * x[left]^(alpha - 1) # The value to the left
-func[right] <- const * exp(-x[right]) # The value to the right
-return(func)
-}
+  density_g = function(x, alpha) {
+    # Normalizing constant c:
+    c = alpha*exp(1)/(alpha + exp(1))
+    
+    # Create an empty vector of same length as x:
+    density = vector(length = length(x))
+    
+    # All elements corresponding to x < 1:
+    density[x < 1.] = c*x[x<1.]^(alpha-1)
+    
+    # All elements corresponding to x >= 1:
+    density[x >= 1.] = c*exp(-x[x>=1.])
+    return(as.double(density))
+  }
 
 
 n=1000000
-alpha=1
-sample_f2<-generate_function(n,alpha)
+alpha=0.75
+sample_f2<-sample_g(n,alpha)
 ggplot()+
   geom_histogram(
     data=as.data.frame(sample_f2),
     mapping=aes(x=sample_f2,y=..density..),
-    binwidth=0.001
+    binwidth=0.01
     
   )+
-  stat_function(
-  fun=theo_gx,
-  args=list(alpha=alpha)
-)
+  stat_function(fun=density_g,args=list(alpha=alpha))+
+  xlim(0,3)
+  
 ```
 
-### 3.) 
+## 3 
 
 We consider the probability density function 
 
@@ -227,7 +252,7 @@ $$
 F^{-1}(y)=\frac{1}{\alpha} \ln \left( \frac{y}{1-y} \right)
 $$
 ### c)
-In the following chunk there is code for a function generating samples from $f$ by using the inversion method
+In the following chunk there is code for a function generating samples form $f$ by using the inversion method
 
 ```{r}
 generate_f <- function(n, alpha)
@@ -265,7 +290,7 @@ ggplot()+
   )
 ```
 
-4.
+## 4.
 
 We use the Box-Muller algorithm to represent independent variables which are standard normal distributed. Let $X \sim N(0,1)$ and $Y \sim N(0,1)$ be independent. The joint distribution of these two variables is 
 $$
@@ -303,7 +328,7 @@ ggplot()+
   geom_histogram(
     data=as.data.frame(sample_normal),
     mapping=aes(x=sample_normal, y=..density..),
-    binwidth=10/150
+    binwidth=0.001
   )+
   stat_function(
     fun=dnorm,
@@ -312,38 +337,49 @@ ggplot()+
   )
 ```
 
-5.
-We want to to simulate from a d-variate normal distribution with mean vector $\mu$ and covariance matrix $\Sigma.$ We use the function form the previous task to simulate form the standard normal distribution. Let $Z \sim \text{Normal}(0,I_d)$, where $I_d$ is the identity matrix. Then
+## 5.
+We want to to simulate from a d-variate normal distribution with mean vector $\mu$ and covariance matrix $\Sigma.$ . Let $x \sim \text{Normal}(0,I_d)$, where $I_d$ is the identity matrix. Then
 
 $$
-X=\mu+DZ \sim Normal(\mu,DD^T)
+y=\mu+DZ \sim Normal(\mu,DD^T)
 $$
-Have to find $D$ such that $\Sigma=DD^T.$
+Thus, we have to find $D$ such that $\Sigma=DD^T.$
+The Cholesky decomposition can be used to find $D.$
 
 ```{r}
 generate_d_normal <-function(n,mu,cov,d)
 {
+  #D is the cholesky decomposition of the covariance matrix
   D<-t(chol(cov))
-  z<-generate_from_normal(d*n)
-  Z<-matrix(z.nrow=d,ncol=n)
-  X<-mu+D %*% Z
-  return(X)
+  x<-generate_from_normal(n)
+  y<-mu+D %*% x
+  return(y)
 }
 ```
-To test wheter the function works, we use 
+An example of this a covariance matrix is
+
+$$
+\left(\begin{array}{ccc} 
+1 & 3&5\\
+3 & 2&2 \\
+5&2&3
+\end{array}\right)
+$$
+
+To test whether the function works, we use 
 $\mu=[1,7,2]^T$ and $\Sigma$
 
-```{r}
+```{r,eval=FALSE}
 n<-10000
 mu<-c(3,4,5)
-cov_mat<-cbind(c(1,2,3), c(2,3,4), c(3,4,5))
+cov_mat<-cbind(c(2,-1,0), c(-1,2,-1), c(0,-1,2))
 cov_mat
-# sample_normal_d<-generate_d_normal(n,mu,cov_mat,3)
+sample_normal_d<-generate_d_normal(n,mu,cov_mat,3)
 ```
 
-## Problem B: The gamma distribution
+# Problem B: The gamma distribution
 
-### 1.
+## 1.
 The gamma distribution with parameters $\alpha \in (0,1)$ and $\beta=1$ has probability density function
 
 \begin{equation} \label{eq:gx}
@@ -355,26 +391,786 @@ The gamma distribution with parameters $\alpha \in (0,1)$ and $\beta=1$ has prob
   \end{cases}
 \end{equation}
 
-a)
+### a)
 The acceptance probability $\gamma$ in the rejection sampling algorithm is given by 
 
 $$
-\gamma=\frac{1}{c} \cdot \frac{f(x)}{g(x)}.
+\gamma=c^{-1} \cdot \frac{f(x)}{g(x)}
 $$
 where $g(x)$ is the proposal density. We use the density in problem A.2. 
 
-## Problem C: Monte Carlo integration and variance reduction
+For $0<x<1$, 
+$$
+g(x)=\frac{\alpha e}{\alpha +e} x^{\alpha-1}.
+$$
+This means that the acceptance probability is
 
-We want to use Monte Carlo integration to find $\theta=P(X>4)$ when $X \sim N(0,1)$
-1. The parameter $\theta$ is estimated by using $n=100000$ samples from the standard normal distribution. 
-The inverse cumulative distribution function for the standard normal distribution is 
+$$
+\gamma=c^{-1} \frac{1}{\Gamma(\alpha)}x^{\alpha-1} e^{-x} \cdot \frac{\alpha+e}{\alpha e \cdot x^{\alpha-1}}=\frac{e^{-x}(\alpha+e)}{c\alpha e \Gamma(\alpha)}
+$$
+For $x \geq 1$, we have
+
+$$
+g(x)=\frac{\alpha e}{\alpha+e} e^{-x}
+$$
+which give the acceptance probability
+
+$$
+\gamma=\frac{x^{\alpha-1}(\alpha+e)}{c \Gamma(\alpha) \alpha e}
+$$
+To sample from $f$, we need to find an efficient bound $c$ such that 
+$$
+\frac{f(x)}{g(x)}\leq c, \forall x
+$$
+We need to choose the smallest possible value for $c$. 
+
+For $0<x<1$
+$$
+ c \geq\frac{(\alpha+e)}{\alpha e \Gamma(\alpha)} \geq\frac{e^{-x}(\alpha+e)}{\alpha e \Gamma(\alpha)} =\frac{f(x)}{g(x)}
+$$
+For $x \geq 1$
+
+$$
+c \geq\frac{(\alpha+e)}{\alpha e \Gamma(\alpha)} \geq\frac{x^{\alpha-1}(\alpha+e)}{ \Gamma(\alpha) \alpha e} =\frac{f(x)}{g(x)}.
+$$
+We can therefore choose $c=\frac{(\alpha+e)}{\alpha e \Gamma(\alpha)}.$
+(b)
+The rejection sampling algorithm is used to generate a vector of n independent samples from $f$.
+
+
 
 ```{r}
-generate_from_normal<-function(n)
+sample_gamma<-function(n,alpha)
 {
-  
+  x<-vector(mode="numeric", length=n)
+  c<-(alpha+exp(1))/(alpha+exp(1))
+  for (i in 1:n) {
+    finished=0
+    while(finished==0)
+    {
+    xi<-sample_g(1,alpha)
+    u<-runif(1)
+    f<-dgamma(xi,alpha)
+    g<-density_g(xi,alpha)
+    gamma<-(1/c)*(f/g)
+    if(u<=gamma)
+    {
+      x[i]=xi
+      finished=1
+    }
+    }
+  }
+  return(x)
+}
+
+x_gamma<-sample_gamma(100000,0.8)
+ggplot()+
+  geom_histogram(
+    data=as.data.frame(x_gamma),
+    mapping=aes(x=x_gamma,y=..density..),
+    binwidth=0.1
+  )+
+  stat_function(
+    fun=dgamma,
+    args=list(shape=0.8)
+  )+
+  xlim(0,3)
+
+```
+
+
+## 2.)
+### (a)
+$a=\sqrt{\text{sup}_{x} f^{*}(x)},$ where 
+\begin{equation} \label{eq:gx}
+  f(x) =
+  \begin{cases}
+    x^{\alpha-1} e^{-x} & \text{if } 0 < x ,
+    \\
+    0 & \text{otherwise},
+  \end{cases}
+\end{equation}
+
+We start to find $\text{sup}_{x} f^{*}(x).$ If $x<0,$ 
+$$
+\frac{\partial}{\partial x} x^{\alpha -1} e^{-x}=
+(\alpha-1) x^{\alpha-2}e^{-x}-x^{\alpha -1}e^{-x}
+$$
+Put this equation equal to $0$ and we get
+
+$$
+(\alpha -1) x^{\alpha -2} e^{-x}-x^{\alpha -1} e^{-x}=0 \implies
+e^{-x}x^{\alpha-1} \cdot((\alpha-1)x^{-1}-1)
+$$
+
+$$
+\implies x=\alpha-1.
+$$
+For $\alpha>0,$ the supremum is given by
+
+$$
+\text{sup}_{x} f^{*}(x)=(\alpha-1)^{\alpha-1}e^{\alpha-1}
+\implies 
+a=\sqrt{(\alpha-1)^{\alpha-1}e^{-\alpha+1}}.
+$$
+The constant $b_{+}$ is given by
+$$
+b_{+}=\sqrt{\text{sup}_{x \geq 0}(x^2 f^{*}(x))}.
+$$
+$$
+\frac{\partial}{\partial x}x^2 f^{*}(x)=\frac{\partial}{\partial x}  x^{\alpha +1} e^{-x}=(\alpha+1)x^{\alpha}e^{-x}-e^{-x}x^{\alpha+1}
+$$
+By setting this equal to zero, we get
+
+$$
+0=(\alpha+1)x^{\alpha}e^{-x}-e^{-x}x^{\alpha+1}
+\implies x=\alpha+1
+$$ 
+Thus, the supremum is \begin{equation} \label{eq:gx}
+  \text{sup}_{x}x^2f^{*}(x) =
+  \begin{cases}
+    (\alpha+1)^{\alpha-1} e^{-\alpha-1} & \text{if } 0 < x ,
+    \\
+    0 & \text{otherwise},
+  \end{cases}
+\end{equation},
+
+which means that the constant $b_{+}$ is given by
+
+$$
+b_{+}=\sqrt{(\alpha+1)^{(\alpha+1)}e^{-\alpha-1}}
+$$
+
+and
+
+$$
+b_{-}=0
+$$
+### b.)
+
+The algorithm to generate $n$ samples from $f$ has to be implemented on log-scale.
+The log-transformations are
+$$
+X_1 \sim \text{Uniform}(0,a) \implies \log(X_1)=\log(a \cdot U_1)=\log(a)+log(U_1)
+$$
+where $U_1 \sim \text{Uniform}(0,1)$
+$$
+X_2 \sim \text{Uniform}(b_{-}, b_{{+}})=\text{Uniform}(0,b_{+}) \implies \log(X_2)=\log(b_{+} \cdot U_2)=\log(b_+)+\log(U_2)
+$$
+where $U_2 \sim \text{Uniform}(0,1).$ We have 
+
+$$
+\frac{x_2}{x_1}=\exp\left(\log\left (\frac{x_2}{x_1} \right)\right)=\exp \left (\log(x_1)+\log(x_2) \right)
+$$
+\begin{equation} \label{eq:gx}
+  f^{*}\left( \frac{x_2}{x_1} \right) =
+  \begin{cases}
+    \left (\frac{x_2}{x_1} \right)^{\alpha -1}e^{-\left(x_2/x_1 \right)} & \text{if } 0 < x_2/x_1 ,
+    \\
+    0 & \text{otherwise},
+  \end{cases}
+\end{equation}
+$$
+\implies
+$$
+\begin{equation} \label{eq:gx}
+  \log f^{*}\left (\frac{x_2}{x_1} \right ) =
+  \begin{cases}
+    (\alpha -1) \log(x_2/x_1) -(x_2/x_1) & \text{if } 0 < x_2/x_1 ,
+    \\
+    0 & \text{otherwise},
+  \end{cases}
+\end{equation}
+
+We have 
+$$
+0 \leq x_1 \leq \sqrt{f^{*}(x_2/x_1)} \implies \log(x_1) \implies \frac{1}{2} \log(f^{*}(x_2/x_1))
+$$
+
+```{r}
+
+log_f_star <- function(x, alpha ) {
+if(x<=0)
+{
+  return(0)
+}
+  else if(x>0)
+  {
+    return(log(x^(alpha-1)*exp(-x)))
+  }
+}
+
+
+# Function generating samples from f
+sample_gamma_2<-function(n,alpha)
+{
+  a<-sqrt((alpha-1)^(alpha-1)*exp(-alpha+1))
+  b<-sqrt((alpha+1)^(alpha+1)*exp(-alpha-1))
+  loga <- log(a)
+  logb <- log(b)
+  x<-vector()
+  count<-0
+  for(i in 1:n)
+  {
+    finished=0
+    while(finished==0)
+    {
+      log_x1<-loga+log(runif(1))
+      log_x2<-logb+log(runif(1))
+      fun<-log_f_star(exp(log_x2-log_x1), alpha)
+      if(log_x1<=(1/2)*fun)
+      {
+        x[i]=exp(log_x2-log_x1)
+        finished=1
+      }
+      count<-count+1
+    }
+  }
+  return(list(x=x,count=count))
+}
+
+```
+
+We plot the results
+```{r}
+n<-10000
+alpha<-30
+x<-sample_gamma_2(n,alpha)$x
+
+ggplot()+
+  geom_histogram(
+    data=as.data.frame(x), mapping=aes(x=x, y=..density..), binwidth=0.7)+
+  stat_function(fun=dgamma, args=list(shape=alpha))
+```
+
+## 3.
+
+We want to write an R function that generates a vector of $n$ independent samples from a gamma distribution with parameters $\alpha$ and $\beta$. So far we have made functions that generate from a gamma distribution with $\alpha \in (0,1) \ \ \text{and} \ \ \alpha \in(1,\infty)$ and $\beta=1.$ The parameter $\beta$ is an inverse scale parameter. This means that if $X \sim \text{Gamma}(\alpha,1),$ then $\frac{1}{\beta} X \sim \text{Gamma}(\alpha, \beta).$ Thus, when we sample from $\text{Gamma}(\alpha,1),$ we can multiply the samples with $1/\beta.$ The parameter $\alpha$ can also be $1.$ We have already made a function that generate samples from the exponential distribution. If $X \sim \text{Gamma}(1,\beta),$ the $X$ has pdf
+$$
+f(x)=\beta e^{-\beta x} \implies X \sim\text{exp}(\beta)
+$$
+Therefore, we can use the function generating from the exponential distribution when $\alpha =1.$
+
+```{r}
+sample_gamma_final<-function(n, alpha,beta)
+{
+  #If alpha=1, we generate from the exponential distribution
+  if(alpha==1)
+  {
+    x<-generate_exponential(n,beta)
+  }
+  #If alpha>1 we use the function from B.2
+  else if(alpha>1)
+  {
+    x<-(1/beta)*sample_gamma_2(n,alpha)$x
+  }
+  #If 0<alpha<1, we use the function from B.1
+  else if(alpha>0 & alpha<1)
+  {
+    x<-(1/beta)*sample_gamma(n,alpha)
+  }
+  else
+  {
+    return(0)
+  }
+}
+```
+
+We generate realizations for the different cases. The first we do is when $\alpha=2$ and $\beta=3.$ 
+```{r}
+alpha=3
+beta=2
+n=10000
+sampling_gamma<-sample_gamma_final(n,alpha,beta)
+
+ggplot()+
+  geom_histogram(
+    data=as.data.frame(sampling_gamma),                     mapping=aes(x=sampling_gamma,y=..density..), binwidth=0.1)+
+  xlim(0,5)+
+stat_function(
+  fun=dgamma,
+  args=list(shape=alpha, rate=beta)
+)
+```
+
+We try an example for when $\alpha=1 \ \ \text{and} \ \ \beta=2$
+
+```{r}
+alpha=1
+beta=2
+n=10000
+sampling_gamma<-sample_gamma_final(n,alpha,beta)
+
+ggplot()+
+  geom_histogram(
+    data=as.data.frame(sampling_gamma),                     mapping=aes(x=sampling_gamma,y=..density..), binwidth=0.1)+
+  xlim(0,5)+
+stat_function(
+  fun=dgamma,
+  args=list(shape=alpha, rate=beta)
+)
+```
+At last, we try when $alpha=0.5$ and $\beta=3$
+
+```{r}
+alpha=0.5
+beta=3
+n=10000
+sampling_gamma<-sample_gamma_final(n,alpha,beta)
+
+ggplot()+
+  geom_histogram(
+    data=as.data.frame(sampling_gamma),                     mapping=aes(x=sampling_gamma,y=..density..), binwidth=0.01)+
+  xlim(0,5)+xlim(0,2)+ylim(0,6)+
+stat_function(
+  fun=dgamma,
+  args=list(shape=alpha, rate=beta)
+)
+```
+
+
+## 4.
+
+
+Let $x \sim \text{Gamma}(\alpha,1)$ and $y \sim \text{Gamma}(\beta,1)$ be independent 
+and let $z=x/(x+y)$. The pdfs of $X$ and $Y$ are
+$$
+f_{X}(x)=\frac{x^{\alpha-1}e^{-x}}{ \Gamma (\alpha)}
+$$
+$$
+f_{Y}(y)=\frac{y^{\beta-1} e^{-y}}{\Gamma (\beta)}
+$$
+The joint distribution of $X$ and $Y$ is given by
+
+$$
+f_{X,Y}(x,y)=f_{x}(x) \cdot f_y(y)=\frac{x^{\alpha-1}y^{\beta-1}e^{-x-y}}{\Gamma(\beta) \Gamma(\alpha)}.
+$$
+Let $Z=\frac{X}{X+Y}$ and $V={X+Y},$ which means that we use the transformations
+$$
+x=h_1(z,v)=z\cdot v \ \ \text{and} \ \ y=h_2(z,v)=v(1-z).
+$$
+The Jacobian is
+$$
+J= \left |
+\begin{matrix}
+\frac{\partial x}{\partial z}& \frac{\partial x}{\partial v} \ \\
+\frac{\partial y}{\partial z} & \frac{\partial y}{\partial v}
+\end{matrix} \right|=\frac{\partial x}{\partial z} \frac{\partial y}{\partial v}-\frac{\partial y}{\partial z} \frac{\partial x}{\partial v}
+$$
+$$
+=v(1-z)-(-v)\cdot z=v
+$$
+The joint distribution of $U$ and $V$ is given by
+$$
+f_{Z,V}(z,v)=f_{X,Y}(h_1(z,v),h_2(z,v))|J|
+$$
+
+$$
+=f_{x,y}(z \cdot v, v(1-z)) \cdot v=\frac{(z \cdot v)^{\alpha -1}(v(1-z))^{\beta -1} e^{-zv -v+vz}}{\Gamma(\alpha)\Gamma(\beta)}\cdot v
+$$
+$$
+=\frac{v^{\alpha+\beta-1}z^{\alpha -1}(1-z)^{\beta-1}e^{-v}}{\Gamma(\alpha) \Gamma(\beta)}
+$$
+The distribution of $V=X+Y$ will be a gamma distribution since $X$ and $Y$ are independent.
+The mgf of V is given by
+$$
+M_V(t)=E[e^{Vt}]=E[e^{(X+Y)t}]=E[e^{Xt}] \cdot E[e^{Yt}]=M_x(t) \cdot M_y(t)
+$$
+$$
+=\left (\frac{1}{1-t} \right )^{\alpha} \cdot \left (\frac{1}{1-t} \right)^{\beta}=\left (\frac{1}{1-t} \right )^{\alpha +\beta}.
+$$
+$$
+\implies V \sim \text{Gamma}(\alpha +\beta,1)
+\implies f_{V}(v)=\frac{v^{\alpha+\beta-1}e^{-v}}{\Gamma(\alpha+\beta)}
+$$
+Since $Z$ and $V$ are independent, the joint distribution can be written.
+
+$$
+f_{Z,V}(z,v)=f_{Z}(z) \cdot f_V(v) \implies
+f_Z(z)=\frac{f_{Z,V}(z,v)}{f_{V}(v)}
+$$
+$$
+\implies 
+f_Z(z)=\frac{v^{\alpha+\beta-1}z^{\alpha -1}(1-z)^{\beta-1}e^{-v}}{\Gamma(\alpha) \Gamma(\beta)} \cdot \frac{\Gamma(\alpha + \beta)}{v^{\alpha +\beta -1 }e^{-v}}=\frac{\Gamma(\alpha + \beta)z^{\alpha-1}(1-z)^{1-\beta}}{\Gamma(\alpha) \Gamma(\beta)}
+$$
+This is the density of a $beta(\alpha, \beta)-$ distribution. 
+
+### (b)
+This means that we can use the function for generating samples from a $\text{Gamma}(\alpha, \beta)$ to sample from $x \sim \text{Gamma}(\alpha, 1)$ and $y \sim \text{Gamma}(\beta,1)$
+and return $z=x/(x+y)$
+In the following code, $n$ independent samples from a beta function is generated.
+
+```{r}
+sample_from_beta <-function(n,alpha,beta)
+{
+  x<-sample_gamma_final(n,alpha,1)
+  y<-sample_gamma_final(n,beta,1)
+  z<-x/(x+y)
+  return(z)
+}
+```
+We generate sample from the function and plot it together with the theoretical distribution.
+
+```{r}
+alpha=3
+beta=2
+sampling_beta<-sample_from_beta(n, alpha, beta)
+
+ggplot()+
+  geom_histogram(
+    data=as.data.frame(sampling_beta),
+    mapping=aes(x=sampling_beta, y=..density..),
+    binwidth=0.01
+  )+
+  stat_function(fun=dbeta, args=list(shape1=alpha,shape2=beta))
+```
+
+
+# Problem C: Monte Carlo integration and variance reduction
+\textcolor{blue}{Intro, do we need it?}\\ 
+Here we will consider Monte Carlo integration to estimate $\theta = P(X>4)$ when $X \sim N(0,1)$. Then we will compare the variance reduction in importance sampling and antithethic sampling.
+
+## 1 Monte Carlo integration {#C1}
+Let $h(X) = I(X>4)$, where $I$ is the indicator function, such that
+$$
+\begin{split}
+  E[h(X)] &= \int^{\infty}_{-\infty} h(x) f(x) dx \\
+  &= \int^{\infty}_{-\infty} I(x>4)f(x)dx \\
+  &= P(X>4) \\
+  &= \theta.
+\end{split}
+$$
+Then, the Monte Carlo Estimate of $\theta$ is given by
+$$
+\hat \theta_{MC} = \frac1n \sum^{n}_{i=1} h(x_i).
+$$
+Now we will find a $1-\alpha$ confidence interval for $\theta$ based on our sample set. First we need the expected value of the Monte Carlo estimator
+$$
+\begin{aligned}
+  E[\hat \theta] &= E[\frac{1}{n} \sum_{i=1}^n h(x_i)] \\
+  &= \frac{1}{n} \sum^{n}_{i=1}{\theta} \\
+  &= \theta,
+\end{aligned}
+$$
+and it's variance
+$$
+\begin{aligned}
+  Var(\hat \theta) &= Var(\frac1n \sum^{n}_{i=1}{h(x_i)})  \\
+  &= \frac{1}{n^2} \sum^{n}_{i=1}{Var(h(x_i))} \\
+  &= \frac1n \frac{1}{n-1} \sum^{n}_{i=1}{(h(x_i) - \hat \theta)^2}.
+\end{aligned}
+$$
+Then we get the statistic
+$$
+T_{MC} = \frac{\hat \theta_{MC} - \theta}{\sqrt{\hat {Var}(\hat\theta_{MC})}} \sim t_{n-1}.
+$$
+Below there is an implementation with $n=100000$ samples of $X$ which we use to find the Monte Carlo estimate $\theta$. \textcolor{red}{Is there something wrong with this variance?} 
+```{r C1_MCconfint, options}
+set.seed(321)                       # Seed for reproducibility.
+n        = 1e5
+x        = generate_from_normal(n)  # Drawing n samples fron N(0,1)
+h        = x>4
+MCest    = mean(h)                  # Monte Carlo estimate
+theta    = pnorm(4, lower.tail = F) # True theta
+                                    # Confidence interval and results
+svMC     = sum((h - MCest)^2)/(n*(n-1)) # Sample Variance
+alpha    = 0.05
+t        = qt(alpha/2, n-1, lower.tail = F) # (1-alpha) significance
+lwrUpr   = sqrt(svMC)*t # lower and upper deviation from mean
+ciMC     = MCest + c(-lwrUpr, lwrUpr)
+resultMC = c(Estimator= MCest, 
+             Confint  = ciMC, 
+             Var      = svMC, 
+             error    = abs(theta-MCest))
+resultMC
+theta
+```
+Here we see and error in the $1\cdot10^{-5}$ decimal and that the true value coincide with the $95\%$ confidence interval.
+
+
+## 2 Importance sampling {#C2}
+Here we will use importance sampling on the same problem as in [C1](#C1) to try to reduce the variance of the Monte Carlo integration. The proposal distribution is
+$$
+g(x) = 
+\begin{cases}
+  cxe^{-x^2/2} &, \ x>4 \\
+  0 &,\ \text{otherwise},
+\end{cases}
+$$
+where $c$ is a normalizing constant. Now, let $x_1,...,x_n \stackrel{i.i.d}{\sim} g(x)$ and let $w_i = w(x_i) = f(x_i)/g(x_i) = f_i/g_i$ be the weights. \textcolor{red}{(where $w_i, f_i$ and $g_i$ are function evaluations at $x_i$)}. Then, the importance sampling estimator of $\theta$ is
+$$
+\hat \theta_{IS} = \frac{ \sum^{n}_{i=1}{h_i w_i}}{n}. 
+$$
+In order to use inversion sampling on the proposal distribution $g$ we need its cdf
+$$
+\begin{split}
+  G(x) &= \int^{x}_{4}{cye^{-y^2/2}}dy \\ 
+  &= \int^{x^2/2}_{8}{ce^{-u}du} \\
+  &=\left[ -ce^{-u}\right]_{8}^{x^2/2} \\
+  &= c(e^{-8} - e^{-x^2/2}).
+\end{split}
+$$
+Since $g$ is a distribution, and therefore $\int^{\infty}_{4}{g(x)}dx = 1$,  we can find $c$ by solving
+$$
+\begin{split}
+  \left. c(e^{-8} - e^{-x^2/2}) \right |_{x=\infty} &=1\\
+  c &= e^{8}.
+\end{split}
+$$
+Then we have $G(x) = 1 - e^{8-x^2/2}$. Now we can sample from $g$ by solving $U=G(x)\sim Unif(0,1)$ for $x$, that is,
+$$
+\begin{split}
+  U &= 1 - e^{8-x^2/2} \\
+  -2ln(1-U) &= x^2 - 16 \\
+  x &= \sqrt{16 - 2ln(1-U)}.
+\end{split}
+$$
+Thus, our samples are generated by inserting randomly selected $U\sim Unif(0,1)$ admits samples from $X\sim g$.
+
+We also need the expected value,
+$$
+\begin{split}
+  E[\hat \theta_{IS}] &= E \left[\frac{ \sum^{n}_{i=1}{h_i w_i}}{n} \right] 
+  \\
+  &= \frac{1}{n} \sum^{n}_{i=1}{ \int^{\infty}_{0}{h_i \frac{f_i}{g_i} g_i dx}} 
+  \\
+  &= \frac1n \sum^{n}_{i=1} \int^{\infty}_{0} h_i f_i dx \\
+  &= \frac1n \sum^{n}_{i=1} E[h_i] \\
+  &= \frac1n n\theta \\
+  &= \theta,
+\end{split}
+$$
+and the sample variance,
+$$
+\begin{split}
+  Var(\hat \theta_{IS}) &= Var \left(\frac{ \sum^{n}_{i=1}{h_i w_i}}{n} \right) 
+  \\
+  &= \frac{1}{n(n-1)} \sum^{n}_{i=1} \left( h_i w_i - \sum^{n}_{i=1} \frac{h_iw_i}{n} \right)^2 
+  \\
+  &= \frac{1}{n(n-1)} \sum^{n}_{i=1}\left( h_i w_i - \hat \theta_{IS}\right)^2,
+\end{split}
+$$
+of the importance sample estimator to compute the $(1-\alpha)%$ confidence interval. Below we have implemented the computation of the importance sample estimate along with the $95\%$ confidence interval.
+```{r expIS, options}
+expSampler <- function(n){
+  # Samples from proposal distribution g
+  u = runif(n)
+  return(sqrt(16-2*log(1-u)))
+}
+
+w <- function(x) {
+  # Weight function
+  f = dnorm(x)
+  g = ifelse(x>4, x*exp(8-0.5*x^2),0)
+  return(f/g)
+}
+set.seed(321)
+gx        = expSampler(n) # Sample from proposal
+gh        = (gx>4)*1
+ISest     = mean(gh*w(gx))
+svIS      = sum((gh*w(gx) - ISest)^2)/(n*(n-1))
+ISconfint = ISest + c(-t*sqrt(svIS), t*svIS)
+# Results
+resultIS  = c(ISestimate=ISest, confint=ISconfint, var=svIS, error = abs(theta - ISest))
+results   = rbind(MC=resultMC, IS=resultIS)
+results
+theta
+```
+Here we see that importance sampling has reduced the variance by a factor of $Var(\hat\theta_{MC}) / Var(\hat \theta_{IS}) =$ `svMC/svIS` $=$ `r svMC/svIS`. Also, the importance sample estimator is a much more precise estimate.
+
+\textcolor{red}{Not sure how to compute how many more samples we would need, since the error influences.} 
+
+## 3 Antithetic Sampling
+Now we will combine the importance sampling with the use of antithetic variates. We start by modifying the sample generator for $g$ in task [C2](#C2) so that it produces $n$ pairs, $X=x_i$ and $Y=y_i$, of antithetic variates by using $u_i$ and $1-u_i$ as input to $G^{-1}$, respectively.
+```{r C3antitheticSampler, options}
+expSamplerAnti <- function(n) {
+  # Pairwise sampling from proposal distribution
+  # evaluated at u and 1-u.
+  u = runif(n) 
+  return(data.frame(x=sqrt(16-2*log(1-u)),
+                    y=sqrt(16-2*log(u))))
+}
+# xy <- expSamplerAnti(n)
+# gx <- ifelse(xy$x>4, xy$x*exp(8-0.5*xy$x^2),0)
+# gy <- ifelse(xy$y>4, xy$y*exp(8-0.5*xy$y^2),0)
+# plot(xy$x,gx)
+# points(xy$y,gy, col="cyan3",cex=1)
+```
+Then, the importance sample estimates for each of the pairs are
+$$
+\begin{split}
+  \hat \theta_X &= \frac1n \sum^{n}_{i=1} h(x_i)w(x_i),\\
+  \hat \theta_Y &= \frac1n \sum^{n}_{i=1} h(y_i)w(y_i),
+\end{split}
+$$
+and the antithetic sample estimator is
+$$
+\hat \theta_A = \frac{\hat \theta_X + \hat \theta_Y}{2}. 
+$$
+We also need the expected value \textcolor{red}{Should we show that each expectation is theta?} 
+$$
+\begin{split}
+  E[\hat \theta_{AS}] &= E\left[ \frac{\hat \theta_X + \hat \theta_Y}{2} \right]
+  \\
+  &= \frac{1}{2n} \sum^{n}_{i=1} (E[h(x_i)w(x_i)] + E[h(y_i)w(y_i)]) \\
+  & \stackrel{*}{=}  \frac{1}{2n} \sum^{n}_{i=1} 2\theta \\
+  &= \theta,
+\end{split}
+$$
+where $*$ since the proposal distribution evaluations cancel in each expectation. \textcolor{red}{not true or not needed?}. The variance of the estimator is
+$$
+\begin{split}
+  Var(\hat \theta_{AS}) &= \frac14(Var(\hat \theta_X) + Var(\hat \theta_Y) + 2Cov(\hat \theta_X,\hat \theta_Y))
+  \\
+  \Downarrow& \quad Var(\hat \theta_X) = Var(\hat \theta_Y) \\
+  &= \frac{(1+\rho_{XY}) S^2_{XY}}{2n}, 
+\end{split}
+$$
+where $\rho_{XY}=Cov(\hat \theta_X,\hat \theta_Y)$ and $S^2_{XY}$ is the sample variance of either estimator $\hat\theta_X$ or $\hat\theta_Y$.
+```{r C3Antithetic, options}
+set.seed(321)
+n = 5e4
+xy = expSamplerAnti(n)
+hxy = (xy>4)*1
+hwx = hxy[,"x"]*w(xy$x)
+hwy = hxy[,"y"]*w(xy$y)
+hwxy = (hwx + hwy)/2
+ASest = mean(hwxy)
+var(hwxy)
+svAS = (var(hwx) + var(hwy) + 2*cov(hwx,hwy))/4
+lwrUprAS = c(-t,t)*sqrt(svAS)
+confintAS = ASest + lwrUprAS
+resultAS <- c(ASest, confintAS, svAS, abs(theta - ASest))
+rbind(results, AS=resultAS)
+```
+
+# Problem D: Rejection sampling and importance sampling
+
+The observed data is $y=[y_1,y_2,y_3,y_4]=[125,18,20,34]$
+
+
+The multinomial mass function is $f(y|\theta) \propto (2+\theta)^{y_1}(1-\theta)^{y_2+y_3} \theta^{y_4}.$ Assuming a uniform prior, the posterior will be 
+$$
+f(\theta | y) \propto f^{*}(\theta)=(2+\theta)^{y_1}(1-\theta)^{y_2+y_3}\theta^{y_4} \ \ \theta \in (0,1)
+$$
+We construct a rejection sampling algorithm to simulate from $f(\theta|y).$ The proposal distribution is $g(\theta)=1.$ The constant $c$ should satisfy 
+$$
+f(\theta|y) \leq c \cdot g(\theta|y)=c
+$$
+We find the maximum of $f(\theta | y)$ given the observed values. 
+
+```{r}
+f_posterior <-function(theta)
+{
+  f<-(2+theta)^125*(1-theta)^(18+20)*theta^(34)
+  return(f)
 }
 ```
 
 
+```{r}
+c<-optimize(f_posterior, c(0,1), maximum = TRUE)$objective
+```
 
+```{r}
+
+rejection_sampling_f <-function(n){
+  x<-vector(mode="numeric",length=n)
+  num_gen=0
+for(i in 1:n)
+{
+  finished=0
+while(finished==0){
+  xi<-runif(1)
+  alpha<-(1/c)*f_posterior(xi)
+  u<-runif(1)
+  if(u<=alpha)
+  {
+    x[i]=xi
+    finished=1
+  }
+  num_gen<-num_gen+1
+}  
+  
+}
+  return(list(sample_f=x,numbers=num_gen))
+}
+```
+
+
+## 2. {#D2}
+
+We want to estimate the posterior mean of $\theta$ by Monte-Carlo integration using $M=10000$ samples from $f(\theta | y).$ The Monte-carlo estimate of the mean is given by
+$$
+\hat{\mu}=\frac{1}{M} \sum_{i=1}^{M} \Theta_i
+$$
+where $\Theta_i, ...,\Theta_M \sim f(\theta|y)$. 
+
+We find the normalizing $k$ for the posterior, which is found by solving the following equation for $k$
+$$
+1=k\int_{0}^{1} f^{*}(\theta) d\theta=\int_{0}^{1} (2+\theta)^{y_1}(1-\theta)^{y_2+y_3}\theta^{y_4} d \theta
+$$
+$$
+\implies k=\frac{1}{\int_{0}^{1}(2+\theta)^{y_1}(1-\theta)^{y_2+y_3} \theta^{y_4} d \theta} 
+$$
+In the code below, a histogram of the sample is drawn and is compared to the theoretical distribution. The estimated posterior mean of $\theta$ is also found and compared to the theoretical value.
+```{r}
+
+norm_con<-integrate(f_posterior,0,1)$val
+
+posterior <-function(theta)
+{
+  return((1/norm_con)*f_posterior(theta))
+}
+```
+
+
+```{r}
+M<-10000
+theta_sampling<-rejection_sampling_f(M)$sample_f
+
+ggplot()+
+  geom_histogram(data=as.data.frame(theta_sampling),          mapping=aes(x=theta_sampling,y=..density..),
+                 binwidth = 0.01)+
+stat_function(
+  fun=posterior,
+)
+```
+
+```{r}
+mu_hat<-mean(theta_sampling)
+mu_hat
+
+mu_theoretical<-integrate(function(theta)(theta*posterior(theta)),0,1)$val
+mu_theoretical
+```
+The estimated posterior mean of $\theta$ using Monte-Carlo integration is `r mu_hat`. The theoretical value of the mean using numerical integration is `r mu_theoretical`.
+
+## 3.
+The number of random numbers the sampling algorithm needs to generate on average is given by the total number of random numbers the the algorithm generates divided by the number of samples of $f(\theta|y)$
+
+```{r}
+total_number<-rejection_sampling_f(M)$numbers
+num<-total_number/10000
+```
+The amount of random numbers needed to generate to obtain one sample of $f(\theta|y)$ is `r num`. The overall acceptance probability is given by
+$$
+P(U \leq \frac{1}{c} \cdot\frac{f(X)}{g(X)})=\int_{-\infty}^{\infty} dx= \frac{f(x)}{c \cdot g(x)}g(x)=c^{-1}
+$$
+This means that $c$ is the expected number of tries to obtain one sample of $f(\theta|y),$ which is `r c/norm_con`. This number is close to the number from our implemented algorithm.
+
+## 4. Beta$(1,5)$ as prior.
+The posterior distribution given a prior $\pi(\theta)$ is given by
+$$
+f(\theta|y)=\frac{f(y|\theta) \pi(\theta)}{\int f(y|\theta) \pi(\theta) d \theta}
+$$
+If the prior has a $\text{beta}(1,5)$ distribution, the posterior is 
+$$
+f(\theta|y) \propto \frac{(1-\theta)^{\beta-1}/B(1,5) (2+\theta)^{y_1}(1-\theta)^{y_2+y_3} \theta^{y_4}}{\int_{0}^{1}(2+\theta)^{y_1}(1-\theta)^{y_2+y_3}\theta^{y_4}(1-\theta)^{\beta-1}/B(1,5) d\theta}
+$$
+$$
+\propto (1-\theta)^{\beta-1}/B(1,5) (2+\theta)^{y_1}(1-\theta)^{y_2+y_3} \theta^{y_4}
+$$
+
+
+In section [D2](#D2)

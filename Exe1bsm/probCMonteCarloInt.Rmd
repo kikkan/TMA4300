@@ -40,13 +40,13 @@ generate_from_normal <- function(n)
 }
 ```
 
-# Caption
 
-## Problem C: Monte Carlo integration and variance reduction
+
+# Problem C: Monte Carlo integration and variance reduction
 \textcolor{blue}{Intro, do we need it?}\\ 
 Here we will consider Monte Carlo integration to estimate $\theta = P(X>4)$ when $X \sim N(0,1)$. Then we will compare the variance reduction in importance sampling and antithethic sampling.
 
-### 1 Monte Carlo integration {#C1}
+## 1 Monte Carlo integration {#C1}
 Let $h(X) = I(X>4)$, where $I$ is the indicator function, such that
 $$
 \begin{split}
@@ -104,7 +104,7 @@ theta
 Here we see and error in the $1\cdot10^{-5}$ decimal and that the true value coincide with the $95\%$ confidence interval.
 
 
-### 2 Importance sampling {#C2}
+## 2 Importance sampling {#C2}
 Here we will use importance sampling on the same problem as in [C1](#C1) to try to reduce the variance of the Monte Carlo integration. The proposal distribution is
 $$
 g(x) = 
@@ -196,7 +196,7 @@ Here we see that importance sampling has reduced the variance by a factor of $Va
 
 \textcolor{red}{Not sure how to compute how many more samples we would need, since the error influences.} 
 
-### 3 Antithetic Sampling
+## 3 Antithetic Sampling
 Now we will combine the importance sampling with the use of antithetic variates. We start by modifying the sample generator for $g$ in task [C2](#C2) so that it produces $n$ pairs, $X=x_i$ and $Y=y_i$, of antithetic variates by using $u_i$ and $1-u_i$ as input to $G^{-1}$, respectively.
 ```{r C3antitheticSampler, options}
 expSamplerAnti <- function(n) {
