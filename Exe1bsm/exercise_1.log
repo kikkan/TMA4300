@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2021/W32TeX) (preloaded format=pdflatex 2022.2.8)  11 FEB 2022 12:44
+This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2021/W32TeX) (preloaded format=pdflatex 2022.2.8)  11 FEB 2022 15:23
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -576,15 +576,11 @@ File: exercise_1_files/figure-latex/unnamed-chunk-19-1.pdf Graphic file (type pd
 <use exercise_1_files/figure-latex/unnamed-chunk-19-1.pdf>
 Package pdftex.def Info: exercise_1_files/figure-latex/unnamed-chunk-19-1.pdf  used on input line 961.
 (pdftex.def)             Requested size: 361.34912pt x 361.34912pt.
-[20] [21 <./exercise_1_files/figure-latex/unnamed-chunk-19-1.pdf>] [22] [23] [24]
-LaTeX Font Info:    Trying to load font information for TS1+lmtt on input line 1172.
-(c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/tex/latex/lm/ts1lmtt.fd
-File: ts1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
-) [25] [26]
-<exercise_1_files/figure-latex/unnamed-chunk-23-1.pdf, id=346, 361.35pt x 361.35pt>
+[20] [21 <./exercise_1_files/figure-latex/unnamed-chunk-19-1.pdf>] [22] [23] [24] [25] [26]
+<exercise_1_files/figure-latex/unnamed-chunk-23-1.pdf, id=345, 361.35pt x 361.35pt>
 File: exercise_1_files/figure-latex/unnamed-chunk-23-1.pdf Graphic file (type pdf)
 <use exercise_1_files/figure-latex/unnamed-chunk-23-1.pdf>
-Package pdftex.def Info: exercise_1_files/figure-latex/unnamed-chunk-23-1.pdf  used on input line 1330.
+Package pdftex.def Info: exercise_1_files/figure-latex/unnamed-chunk-23-1.pdf  used on input line 1320.
 (pdftex.def)             Requested size: 361.34912pt x 361.34912pt.
 [27] [28 <./exercise_1_files/figure-latex/unnamed-chunk-23-1.pdf>] [29] [30] (./exercise_1.aux)
 
@@ -594,18 +590,18 @@ Package rerunfilecheck Info: File `exercise_1.out' has not changed.
 (rerunfilecheck)             Checksum: 9021FC3989430DA5F05BBC46AA41516A;3228.
  ) 
 Here is how much of TeX's memory you used:
- 12466 strings out of 480238
- 199032 string characters out of 5894272
- 511859 words of memory out of 5000000
- 30106 multiletter control sequences out of 15000+600000
- 521780 words of font info for 72 fonts, out of 8000000 for 9000
+ 12428 strings out of 480238
+ 198349 string characters out of 5894272
+ 510859 words of memory out of 5000000
+ 30072 multiletter control sequences out of 15000+600000
+ 521473 words of font info for 71 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
  60i,18n,63p,798b,395s stack positions out of 5000i,500n,10000p,200000b,80000s
-{c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc}{c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}{c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}{c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc}{c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc}{c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc}<c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx12.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmex10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi12.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi5.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi7.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr12.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr17.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr5.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr7.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmsy10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmsy7.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmtk10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmtt10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmtti10.pfb>
-Output written on exercise_1.pdf (30 pages, 545548 bytes).
+{c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc}{c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}{c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc}{c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc}{c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc}<c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx12.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmex10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi12.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi5.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi7.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr12.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr17.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr5.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr7.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmsy10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmsy7.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmtk10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmtt10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmtti10.pfb>
+Output written on exercise_1.pdf (30 pages, 543110 bytes).
 PDF statistics:
- 480 PDF objects out of 1000 (max. 8388607)
- 385 compressed objects within 4 object streams
+ 477 PDF objects out of 1000 (max. 8388607)
+ 383 compressed objects within 4 object streams
  87 named destinations out of 1000 (max. 500000)
  248 words of extra memory for PDF output out of 10000 (max. 10000000)
 

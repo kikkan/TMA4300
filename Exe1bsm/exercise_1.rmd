@@ -827,7 +827,7 @@ ggplot()+
 
 
 # Problem C: Monte Carlo integration and variance reduction
-\textcolor{blue}{Intro, do we need it?}\\ 
+
 Here we will consider Monte Carlo integration to estimate $\theta = P(X>4)$ when $X \sim N(0,1)$. Then we will compare the variance reduction in importance sampling and antithethic sampling.
 
 ## 1 Monte Carlo integration {#C1}
@@ -864,7 +864,7 @@ Then we get the statistic
 $$
 T_{MC} = \frac{\hat \theta_{MC} - \theta}{\sqrt{\hat {Var}(\hat\theta_{MC})}} \sim t_{n-1}.
 $$
-Below there is an implementation with $n=100000$ samples of $X$ which we use to find the Monte Carlo estimate $\theta$. \textcolor{red}{Is there something wrong with this variance?} 
+Below there is an implementation with $n=100000$ samples of $X$ which we use to find the Monte Carlo estimate $\theta$.
 ```{r C1_MCconfint, options}
 set.seed(321)                       # Seed for reproducibility.
 n        = 1e5
@@ -872,11 +872,11 @@ x        = generate_from_normal(n)  # Drawing n samples fron N(0,1)
 h        = x>4
 MCest    = mean(h)                  # Monte Carlo estimate
 theta    = pnorm(4, lower.tail = F) # True theta
-                                    # Confidence interval and results
-svMC     = sum((h - MCest)^2)/(n*(n-1)) # Sample Variance
+# Confidence interval and results
+svMC     = var(h) # Sample variance
 alpha    = 0.05
 t        = qt(alpha/2, n-1, lower.tail = F) # (1-alpha) significance
-lwrUpr   = sqrt(svMC)*t # lower and upper deviation from mean
+lwrUpr   = sqrt(svMC/n)*t # lower and upper deviation from mean
 ciMC     = MCest + c(-lwrUpr, lwrUpr)
 resultMC = c(Estimator= MCest, 
              Confint  = ciMC, 
@@ -885,7 +885,7 @@ resultMC = c(Estimator= MCest,
 resultMC
 theta
 ```
-Here we see and error in the $1\cdot10^{-5}$ decimal and that the true value coincide with the $95\%$ confidence interval.
+Here we see an error in the $1\cdot10^{-5}$ decimal and that the true value coincide with the $95\%$ confidence interval.
 
 
 ## 2 Importance sampling {#C2}
@@ -897,11 +897,11 @@ g(x) =
   0 &,\ \text{otherwise},
 \end{cases}
 $$
-where $c$ is a normalizing constant. Now, let $x_1,...,x_n \stackrel{i.i.d}{\sim} g(x)$ and let $w_i = w(x_i) = f(x_i)/g(x_i) = f_i/g_i$ be the weights. \textcolor{red}{(where $w_i, f_i$ and $g_i$ are function evaluations at $x_i$)}. Then, the importance sampling estimator of $\theta$ is
+where $c$ is a normalizing constant. Now, let $x_1,...,x_n {\sim} g(x)$ and let $w_i = f(x_i)/g(x_i)$ be the weights. Then, the importance sampling estimator of $\theta$ is
 $$
 \hat \theta_{IS} = \frac{ \sum^{n}_{i=1}{h_i w_i}}{n}. 
 $$
-In order to use inversion sampling on the proposal distribution $g$ we need its cdf
+In order to use inversion sampling on the proposal distribution $g$ we need its cdf,
 $$
 \begin{split}
   G(x) &= \int^{x}_{4}{cye^{-y^2/2}}dy \\ 
@@ -964,24 +964,30 @@ w <- function(x) {
   g = ifelse(x>4, x*exp(8-0.5*x^2),0)
   return(f/g)
 }
+
 set.seed(321)
 gx        = expSampler(n) # Sample from proposal
 gh        = (gx>4)*1
-ISest     = mean(gh*w(gx))
-svIS      = sum((gh*w(gx) - ISest)^2)/(n*(n-1))
-ISconfint = ISest + c(-t*sqrt(svIS), t*svIS)
-# Results
+ISest     = mean(gh*w(gx)) # Importance sample estimate
+svIS      = var(gh*w(gx))
+ISconfint = ISest + c(-t*sqrt(svIS/n), t*svIS/n)
 resultIS  = c(ISestimate=ISest, confint=ISconfint, var=svIS, error = abs(theta - ISest))
 results   = rbind(MC=resultMC, IS=resultIS)
 results
 theta
 ```
-Here we see that importance sampling has reduced the variance by a factor of $Var(\hat\theta_{MC}) / Var(\hat \theta_{IS}) =$ `svMC/svIS` $=$ `r svMC/svIS`. Also, the importance sample estimator is a much more precise estimate.
-
-\textcolor{red}{Not sure how to compute how many more samples we would need, since the error influences.} 
+Here we see that importance sampling has reduced the variance by a factor of $Var(\hat\theta_{MC}) / Var(\hat \theta_{IS}) =$ `svMC/svIS` $=$ `r svMC/svIS`. Also, the importance sample estimator is a much more precise estimate considering the error. If we let variance be a more general proxy for precision, then we can estimate the number of samples $n$ needed in [C1](#C1) to obtain the same precision as the importance sampling technique with $m=100000$ samples. This is done by setting
+$$
+\begin{split}
+  Var(\hat \theta_{MC}) &= Var(\hat \theta_{IS}) \\
+  \Leftrightarrow \frac1nVar(h(X)) &= \frac1m Var(h(X)w(X)) \\
+  \Leftrightarrow n &= m \frac{Var(h(X))}{Var(h(X)w(X))}.
+\end{split}
+$$
+From the previous results we get the estimated number of samples, $n =$ `svMC / svIS` $=$ `r n*svMC / svIS`, needed to obtain the same precision as we did using importance sampling as a variance reducing technique.  
 
 ## 3 Antithetic Sampling
-Now we will combine the importance sampling with the use of antithetic variates. We start by modifying the sample generator for $g$ in task [C2](#C2) so that it produces $n$ pairs, $X=x_i$ and $Y=y_i$, of antithetic variates by using $u_i$ and $1-u_i$ as input to $G^{-1}$, respectively.
+Now we will combine the importance sampling with the use of antithetic variates. We start by modifying the sample generator for $g$ in task [C2](#C2) so that it produces $n$ pairs, $X=x_i$ and $Y=y_i$, of antithetic variates generated from $G^{-1}$ with inputs $u_i$ and $1-u_i$, respectively.
 ```{r C3antitheticSampler, options}
 expSamplerAnti <- function(n) {
   # Pairwise sampling from proposal distribution
@@ -990,11 +996,6 @@ expSamplerAnti <- function(n) {
   return(data.frame(x=sqrt(16-2*log(1-u)),
                     y=sqrt(16-2*log(u))))
 }
-# xy <- expSamplerAnti(n)
-# gx <- ifelse(xy$x>4, xy$x*exp(8-0.5*xy$x^2),0)
-# gy <- ifelse(xy$y>4, xy$y*exp(8-0.5*xy$y^2),0)
-# plot(xy$x,gx)
-# points(xy$y,gy, col="cyan3",cex=1)
 ```
 Then, the importance sample estimates for each of the pairs are
 $$
@@ -1007,42 +1008,40 @@ and the antithetic sample estimator is
 $$
 \hat \theta_A = \frac{\hat \theta_X + \hat \theta_Y}{2}. 
 $$
-We also need the expected value \textcolor{red}{Should we show that each expectation is theta?} 
+We also need the expected value
 $$
 \begin{split}
   E[\hat \theta_{AS}] &= E\left[ \frac{\hat \theta_X + \hat \theta_Y}{2} \right]
   \\
   &= \frac{1}{2n} \sum^{n}_{i=1} (E[h(x_i)w(x_i)] + E[h(y_i)w(y_i)]) \\
-  & \stackrel{*}{=}  \frac{1}{2n} \sum^{n}_{i=1} 2\theta \\
+  &= \frac{1}{2n} \sum^{n}_{i=1} 2\theta \\
   &= \theta,
 \end{split}
 $$
-where $*$ since the proposal distribution evaluations cancel in each expectation. \textcolor{red}{not true or not needed?}. The variance of the estimator is
+and the variance is
 $$
 \begin{split}
   Var(\hat \theta_{AS}) &= \frac14(Var(\hat \theta_X) + Var(\hat \theta_Y) + 2Cov(\hat \theta_X,\hat \theta_Y))
-  \\
-  \Downarrow& \quad Var(\hat \theta_X) = Var(\hat \theta_Y) \\
-  &= \frac{(1+\rho_{XY}) S^2_{XY}}{2n}, 
 \end{split}
 $$
-where $\rho_{XY}=Cov(\hat \theta_X,\hat \theta_Y)$ and $S^2_{XY}$ is the sample variance of either estimator $\hat\theta_X$ or $\hat\theta_Y$.
+where $\rho_{XY}=Cov(\hat \theta_X,\hat \theta_Y)$ and $S^2_{XY}$ is the sample variance of either estimator $\hat\theta_X$ or $\hat\theta_Y$. For a fair comparison to importance sampling we set the number of samples $m = n/2$ since antithetic sampling generates $m$ samples for each of the function evaluations of $G^{-1}(\cdot)$.
 ```{r C3Antithetic, options}
 set.seed(321)
-n = 5e4
-xy = expSamplerAnti(n)
-hxy = (xy>4)*1
-hwx = hxy[,"x"]*w(xy$x)
-hwy = hxy[,"y"]*w(xy$y)
-hwxy = (hwx + hwy)/2
-ASest = mean(hwxy)
-var(hwxy)
-svAS = (var(hwx) + var(hwy) + 2*cov(hwx,hwy))/4
-lwrUprAS = c(-t,t)*sqrt(svAS)
+m         = 5e4
+xy        = expSamplerAnti(m)
+hx        = (xy$x>4)*1 # h(X)
+hy        = (xy$y>4)*1 # h(Y)
+hwx       = hx*w(xy$x) # h(X)w(X)
+hwy       = hy*w(xy$y) # h(Y)w(Y)
+AS        = (hwx + hwy)/2 # (theta_x + theta_y)/2
+ASest     = mean(AS)
+svAS      = var(AS)
+lwrUprAS  = c(-t,t)*sqrt(svAS/n)
 confintAS = ASest + lwrUprAS
-resultAS <- c(ASest, confintAS, svAS, abs(theta - ASest))
+resultAS  = c(ASest, confintAS, svAS, abs(theta - ASest))
 rbind(results, AS=resultAS)
 ```
+
 
 # Problem D: Rejection sampling and importance sampling
 
