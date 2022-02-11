@@ -802,13 +802,15 @@ In the code below, the number of trials for $\alpha=2,..,100$ is stored and plot
 
 ```{r}
 n=1000
-trials<-vector()
-for(i in 2:100)
+trials<-rep(NA, 1999)
+for(i in 2:2000)
 {
-  x<-sample_gamma_2(n,i)$count
+  x<-(sample_gamma_2(n,i)$count)
   trials[i-1]<-x
 }
-plot(x=2:100, y=trials, xlab="alpha", ylab="trials", main="Number of trials plotted against different values of alpha")
+length(trials)
+summary(trials)
+plot(x=2:2000, y=log(trials), xlab="alpha", ylab="trials", main="Number of trials plotted against different values of alpha")
 ```
 
 
