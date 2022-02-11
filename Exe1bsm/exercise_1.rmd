@@ -1062,13 +1062,9 @@ We find the maximum of $f(\theta | y)$ given the observed values.
 ```{r}
 f_posterior <-function(theta)
 {
-  f<-(2+theta)^125*(1-theta)^(18+20)*theta^(34)
-  return(f)
+  return((2+theta)^125*(1-theta)^(18+20)*theta^(34))
 }
-```
 
-
-```{r}
 c<-optimize(f_posterior, c(0,1), maximum = TRUE)$objective
 ```
 
@@ -1078,22 +1074,19 @@ rejection_sampling_f <-function(n, p){
   # p is the posterior function
   x<-vector(mode="numeric",length=n)
   num_gen=0
-for(i in 1:n)
-{
-  finished=0
-while(finished==0){
-  xi<-runif(1)
-  alpha<-(1/c)*p(xi)
-  u<-runif(1)
-  if(u<=alpha)
-  {
-    x[i]=xi
-    finished=1
-  }
-  num_gen<-num_gen+1
-}  
-  
-}
+  for(i in 1:n){
+    finished=0
+    while(finished==0){
+      xi<-runif(1)
+      alpha<-(1/c)*p(xi)
+      u<-runif(1)
+      if(u<=alpha){
+        x[i]=xi
+        finished=1
+        }
+      num_gen<-num_gen+1
+      }
+    }
   return(list(sample_f=x,numbers=num_gen))
 }
 ```
@@ -1174,7 +1167,7 @@ $$
 $$
 \textcolor{green}{D4 chris} 
 
-In section [D2](#D2) we used a uniform prior, i.e Beta$(1,1)$ prior for $\theta$. Now we will assume a Beta$(1,5)$ prior instead, that is
+In section [D2](#D2) we used a uniform prior for $\theta$. Now we will assume a Beta$(1,5)$ prior instead, that is
 $$
 \begin{split}
   f(\theta) &= \frac{1}{B(1,5)} \theta^{1-1}(1-\theta)^{5-1} \\
@@ -1187,19 +1180,42 @@ $$
   f(\theta|y) &= \frac{(2+\theta)^{y_1}(1-\theta)^{y_2+y_3}\theta^{y_4}(1-\theta)^4/B(1,5)}
   {\int_0^1(2+\theta)^{y_1}(1-\theta)^{y_2+y_3}\theta^{y_4}(1-\theta)^4/B(1,5)d\theta}
   \\
-  &\propto (2+\theta)^{y_1}(1-\theta)^{y_2+y_3 + 4}\theta^{y_4}.
+  &\propto (2+\theta)^{y_1}(1-\theta)^{y_2+y_3 + 4}\theta^{y_4},
 \end{split}
 $$
-
-\textcolor{blue}{add fab stuff above if needed?}
-
+which is the un-scaled posterior denoted $f^*(\theta|y)$. As the proposal distribution we use the un-scaled posterior from section [D2](#D2), $f^*(\theta)$, such that the importance sample weights are
+$$
+w_i = \frac{f^*(\theta_i|y)}{f^*(\theta_i)} = (1-\theta_i)^4
+$$
+The self-normalizing importance sample estimator is then
+$$
+\tilde \mu_{IS} =  \frac{\sum^{n}_{i=1} \theta_i w_i}{ \sum^{n}_{i=1} w_i} .
+$$
 ```{r D4beta15prior, options}
-posterior15 <- function(theta, normalize){
+f_posterior15 <- function(theta){
   # Posterior when prior is beta(1,5)
-  return((2 + theta)^125 * (1 - theta)^(18 + 20 + 4) * theta^(34)/normalize)
+  return(f_posterior(theta) * (1-theta)^4)
 }
 
-norm_con15 = integrate(posterior15, 0, 1)$val
-theta_sampling15 = rejection_sampling_f(M, posterior15)
-```
+norm_con15 = integrate(f_posterior15, 0, 1)$val
+c<-optimize(f_posterior15, c(0,1), maximum = TRUE)$objective
 
+posterior15 <- function(theta){
+  # Normalized posterior
+  return(f_posterior15(theta)/norm_con15)
+}
+
+w <- function(x){
+  return((1-x)^4)
+}
+
+impSamp = theta_sampling*w(theta_sampling)
+# Self-normalized IS estimate
+impEst = sum(impSamp)/sum(w(theta_sampling)) 
+# Theoretical mean
+mu_theoretical15 = integrate(function(theta) (theta*posterior15(theta)),0,1)$val
+c(IS = impEst, Theoretical = mu_theoretical15)
+rbind(Estimate = c(B15 = impEst, B11 = mu_hat),
+      NumericalInt = c(mu_theoretical15,mu_theoretical))
+```
+Here we see the `B15` column corresponding to our estimated mean using $B(1,5)$ as prior with its numerically integrated value below, and the computations from section [D2](#D2) in the `B11` column. We see that the former estimated mean coincide well with the corresponding numerical integration. Also we notice that these values are smaller than those in column `B11`, which can be explained by the importance sample weight function $w_i = (1-\theta_i)^4$ favouring small value of $\theta \in (0,1)$.

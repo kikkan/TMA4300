@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2021/W32TeX) (preloaded format=pdflatex 2022.2.8)  10 FEB 2022 20:41
+This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2021/W32TeX) (preloaded format=pdflatex 2022.2.8)  11 FEB 2022 12:44
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -517,95 +517,95 @@ File: t1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10> not available
 (Font)              Font shape `T1/lmtt/b/n' tried instead on input line 167.
-<exercise_1_files/figure-latex/unnamed-chunk-2-1.pdf, id=134, 361.35pt x 361.35pt>
+<exercise_1_files/figure-latex/unnamed-chunk-2-1.pdf, id=139, 361.35pt x 361.35pt>
 File: exercise_1_files/figure-latex/unnamed-chunk-2-1.pdf Graphic file (type pdf)
 <use exercise_1_files/figure-latex/unnamed-chunk-2-1.pdf>
 Package pdftex.def Info: exercise_1_files/figure-latex/unnamed-chunk-2-1.pdf  used on input line 206.
 (pdftex.def)             Requested size: 361.34912pt x 361.34912pt.
 [2] [3 <./exercise_1_files/figure-latex/unnamed-chunk-2-1.pdf>] [4]
-<exercise_1_files/figure-latex/unnamed-chunk-4-1.pdf, id=165, 361.35pt x 361.35pt>
+<exercise_1_files/figure-latex/unnamed-chunk-4-1.pdf, id=171, 361.35pt x 361.35pt>
 File: exercise_1_files/figure-latex/unnamed-chunk-4-1.pdf Graphic file (type pdf)
 <use exercise_1_files/figure-latex/unnamed-chunk-4-1.pdf>
 Package pdftex.def Info: exercise_1_files/figure-latex/unnamed-chunk-4-1.pdf  used on input line 333.
 (pdftex.def)             Requested size: 361.34912pt x 361.34912pt.
 [5] [6 <./exercise_1_files/figure-latex/unnamed-chunk-4-1.pdf>]
-<exercise_1_files/figure-latex/unnamed-chunk-7-1.pdf, id=183, 361.35pt x 361.35pt>
+<exercise_1_files/figure-latex/unnamed-chunk-7-1.pdf, id=188, 361.35pt x 361.35pt>
 File: exercise_1_files/figure-latex/unnamed-chunk-7-1.pdf Graphic file (type pdf)
 <use exercise_1_files/figure-latex/unnamed-chunk-7-1.pdf>
 Package pdftex.def Info: exercise_1_files/figure-latex/unnamed-chunk-7-1.pdf  used on input line 422.
 (pdftex.def)             Requested size: 361.34912pt x 361.34912pt.
 [7] [8 <./exercise_1_files/figure-latex/unnamed-chunk-7-1.pdf>]
-<exercise_1_files/figure-latex/unnamed-chunk-8-1.pdf, id=199, 361.35pt x 361.35pt>
+<exercise_1_files/figure-latex/unnamed-chunk-8-1.pdf, id=204, 361.35pt x 361.35pt>
 File: exercise_1_files/figure-latex/unnamed-chunk-8-1.pdf Graphic file (type pdf)
 <use exercise_1_files/figure-latex/unnamed-chunk-8-1.pdf>
 Package pdftex.def Info: exercise_1_files/figure-latex/unnamed-chunk-8-1.pdf  used on input line 465.
 (pdftex.def)             Requested size: 361.34912pt x 361.34912pt.
 [9 <./exercise_1_files/figure-latex/unnamed-chunk-8-1.pdf>] [10]
-<exercise_1_files/figure-latex/unnamed-chunk-11-1.pdf, id=218, 361.35pt x 361.35pt>
+<exercise_1_files/figure-latex/unnamed-chunk-11-1.pdf, id=223, 361.35pt x 361.35pt>
 File: exercise_1_files/figure-latex/unnamed-chunk-11-1.pdf Graphic file (type pdf)
 <use exercise_1_files/figure-latex/unnamed-chunk-11-1.pdf>
 Package pdftex.def Info: exercise_1_files/figure-latex/unnamed-chunk-11-1.pdf  used on input line 607.
 (pdftex.def)             Requested size: 361.34912pt x 361.34912pt.
 [11] [12 <./exercise_1_files/figure-latex/unnamed-chunk-11-1.pdf>] [13]
-<exercise_1_files/figure-latex/unnamed-chunk-13-1.pdf, id=243, 361.35pt x 361.35pt>
+<exercise_1_files/figure-latex/unnamed-chunk-13-1.pdf, id=248, 361.35pt x 361.35pt>
 File: exercise_1_files/figure-latex/unnamed-chunk-13-1.pdf Graphic file (type pdf)
 <use exercise_1_files/figure-latex/unnamed-chunk-13-1.pdf>
 Package pdftex.def Info: exercise_1_files/figure-latex/unnamed-chunk-13-1.pdf  used on input line 771.
 (pdftex.def)             Requested size: 361.34912pt x 361.34912pt.
 [14] [15 <./exercise_1_files/figure-latex/unnamed-chunk-13-1.pdf>]
-<exercise_1_files/figure-latex/unnamed-chunk-15-1.pdf, id=258, 361.35pt x 361.35pt>
+<exercise_1_files/figure-latex/unnamed-chunk-15-1.pdf, id=263, 361.35pt x 361.35pt>
 File: exercise_1_files/figure-latex/unnamed-chunk-15-1.pdf Graphic file (type pdf)
 <use exercise_1_files/figure-latex/unnamed-chunk-15-1.pdf>
 Package pdftex.def Info: exercise_1_files/figure-latex/unnamed-chunk-15-1.pdf  used on input line 824.
 (pdftex.def)             Requested size: 361.34912pt x 361.34912pt.
 [16]
-<exercise_1_files/figure-latex/unnamed-chunk-16-1.pdf, id=263, 361.35pt x 361.35pt>
+<exercise_1_files/figure-latex/unnamed-chunk-16-1.pdf, id=268, 361.35pt x 361.35pt>
 File: exercise_1_files/figure-latex/unnamed-chunk-16-1.pdf Graphic file (type pdf)
 <use exercise_1_files/figure-latex/unnamed-chunk-16-1.pdf>
 Package pdftex.def Info: exercise_1_files/figure-latex/unnamed-chunk-16-1.pdf  used on input line 841.
 (pdftex.def)             Requested size: 361.34912pt x 361.34912pt.
 [17 <./exercise_1_files/figure-latex/unnamed-chunk-15-1.pdf>]
-<exercise_1_files/figure-latex/unnamed-chunk-17-1.pdf, id=273, 361.35pt x 361.35pt>
+<exercise_1_files/figure-latex/unnamed-chunk-17-1.pdf, id=278, 361.35pt x 361.35pt>
 File: exercise_1_files/figure-latex/unnamed-chunk-17-1.pdf Graphic file (type pdf)
 <use exercise_1_files/figure-latex/unnamed-chunk-17-1.pdf>
 Package pdftex.def Info: exercise_1_files/figure-latex/unnamed-chunk-17-1.pdf  used on input line 858.
 (pdftex.def)             Requested size: 361.34912pt x 361.34912pt.
 [18 <./exercise_1_files/figure-latex/unnamed-chunk-16-1.pdf>] [19 <./exercise_1_files/figure-latex/unnamed-chunk-17-1.pdf>]
-<exercise_1_files/figure-latex/unnamed-chunk-19-1.pdf, id=295, 361.35pt x 361.35pt>
+<exercise_1_files/figure-latex/unnamed-chunk-19-1.pdf, id=301, 361.35pt x 361.35pt>
 File: exercise_1_files/figure-latex/unnamed-chunk-19-1.pdf Graphic file (type pdf)
 <use exercise_1_files/figure-latex/unnamed-chunk-19-1.pdf>
-Package pdftex.def Info: exercise_1_files/figure-latex/unnamed-chunk-19-1.pdf  used on input line 958.
+Package pdftex.def Info: exercise_1_files/figure-latex/unnamed-chunk-19-1.pdf  used on input line 961.
 (pdftex.def)             Requested size: 361.34912pt x 361.34912pt.
 [20] [21 <./exercise_1_files/figure-latex/unnamed-chunk-19-1.pdf>] [22] [23] [24]
-LaTeX Font Info:    Trying to load font information for TS1+lmtt on input line 1169.
+LaTeX Font Info:    Trying to load font information for TS1+lmtt on input line 1172.
 (c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/tex/latex/lm/ts1lmtt.fd
 File: ts1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 ) [25] [26]
-<exercise_1_files/figure-latex/unnamed-chunk-24-1.pdf, id=340, 361.35pt x 361.35pt>
-File: exercise_1_files/figure-latex/unnamed-chunk-24-1.pdf Graphic file (type pdf)
-<use exercise_1_files/figure-latex/unnamed-chunk-24-1.pdf>
-Package pdftex.def Info: exercise_1_files/figure-latex/unnamed-chunk-24-1.pdf  used on input line 1332.
+<exercise_1_files/figure-latex/unnamed-chunk-23-1.pdf, id=346, 361.35pt x 361.35pt>
+File: exercise_1_files/figure-latex/unnamed-chunk-23-1.pdf Graphic file (type pdf)
+<use exercise_1_files/figure-latex/unnamed-chunk-23-1.pdf>
+Package pdftex.def Info: exercise_1_files/figure-latex/unnamed-chunk-23-1.pdf  used on input line 1330.
 (pdftex.def)             Requested size: 361.34912pt x 361.34912pt.
-[27] [28 <./exercise_1_files/figure-latex/unnamed-chunk-24-1.pdf>] [29] (./exercise_1.aux)
+[27] [28 <./exercise_1_files/figure-latex/unnamed-chunk-23-1.pdf>] [29] [30] (./exercise_1.aux)
 
 LaTeX Warning: There were multiply-defined labels.
 
 Package rerunfilecheck Info: File `exercise_1.out' has not changed.
-(rerunfilecheck)             Checksum: FC93FDD0E24CF5C8B25D5EBF3FC0338C;3158.
+(rerunfilecheck)             Checksum: 9021FC3989430DA5F05BBC46AA41516A;3228.
  ) 
 Here is how much of TeX's memory you used:
- 12462 strings out of 480238
- 198999 string characters out of 5894272
- 511832 words of memory out of 5000000
- 30104 multiletter control sequences out of 15000+600000
+ 12466 strings out of 480238
+ 199032 string characters out of 5894272
+ 511859 words of memory out of 5000000
+ 30106 multiletter control sequences out of 15000+600000
  521780 words of font info for 72 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
  60i,18n,63p,798b,395s stack positions out of 5000i,500n,10000p,200000b,80000s
 {c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc}{c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}{c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}{c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc}{c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc}{c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc}<c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx12.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmex10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi12.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi5.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi7.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr12.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr17.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr5.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr7.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmsy10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmsy7.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmtk10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmtt10.pfb><c:/Users/chris/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmtti10.pfb>
-Output written on exercise_1.pdf (29 pages, 541938 bytes).
+Output written on exercise_1.pdf (30 pages, 545548 bytes).
 PDF statistics:
- 469 PDF objects out of 1000 (max. 8388607)
- 375 compressed objects within 4 object streams
- 85 named destinations out of 1000 (max. 500000)
- 240 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 480 PDF objects out of 1000 (max. 8388607)
+ 385 compressed objects within 4 object streams
+ 87 named destinations out of 1000 (max. 500000)
+ 248 words of extra memory for PDF output out of 10000 (max. 10000000)
 
