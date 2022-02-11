@@ -1,6 +1,6 @@
 ---
-title: "Project 2"
-author: "Erling og Christian"
+title: "Project 1"
+author: "Erling Fause Steen og Christian Oppegård Moen"
 date: "03 02 2022"
 output: 
   bookdown::pdf_document2:
@@ -22,17 +22,17 @@ knitr::opts_chunk$set(echo = TRUE,tidy=TRUE,message=FALSE,warning=FALSE,
                       prompt=FALSE,
                       cache=TRUE, 
                       size="scriptsize",
-                      fig.width=5, 
+                      fig.width=7, 
                       fig.height=5, 
                       fig.align = "center")
 ```
 
-# Problem A: Stochastic simulation by the probabilty integral transform and bivariate techniques
+## Problem A: Stochastic simulation by the probabilty integral transform and bivariate techniques
 
 
-## 1.
+### 1 Exponential Distribution
  
-We are going to generate samples from an exponential distribution with rate parameter $\lambda$, and the number of samples is $n$. 
+We are going to generate $n$ samples from an exponential distribution with rate parameter $\lambda.$ 
 Let $X \sim Exp(\lambda)$. This gives pdf and cdf 
 $$
 f(x)=\lambda \exp(-\lambda x)
@@ -40,7 +40,8 @@ $$
 $$
 F(x)=1-\exp(-\lambda x)
 $$
-The inversion method can be used for generate samples from the exponential distribution. First random variable $U$ is generated from the standard uniform distribution in interval $[0,1].$ Then $X=F^{-1}(U)$. The algorithm is then
+for $X$.
+The inversion method can be used to generate samples from the exponential distribution. Firstly, the random variable $U$ is generated from the standard uniform distribution in interval $[0,1].$ Then $X=F^{-1}(U)$. The algorithm is then
 $$
 u \sim U[0,1]
 $$
@@ -50,53 +51,68 @@ $$
 $$
 \text{return } x
 $$
-
+This algorithm is implemented below.
 ```{r}
 generate_exponential <- function(n, lambda)
 {
+  #generate samples from U
   u <-runif(n)
+  #calculate x
   x <- -(1/lambda) * log(u)
   return(x)
 }
 ```
-Below the function is used with $n=10000$ and $\lambda=3$. The result is plotted against the theoretical distribution.
+Below, $n=10000$ samples are generated with $\lambda=3$. The result is plotted against the theoretical distribution.
 
 ```{r}
 library(ggplot2)
-
-theoretical_f_1 <-function(x,lambda)
-{
-  return(lambda*exp(-lambda*x))
-}
-set.seed(2)
 n=100000
 lambda=3
+#generate samples from the function
 generate_f_1=generate_exponential(n, lambda)
-
-
+#Plot the generated samples
 ggplot()+
   geom_histogram(
     data=as.data.frame(generate_f_1),
     mapping=aes(x=generate_f_1,y=..density..),
-    binwidth=0.001
-    
+    binwidth=0.01
+#Plot the theoretical density    
   )+
   stat_function(
-  fun=theoretical_f_1,
-  args=list(lambda=lambda),
-  aes(col="Theoretical distribution")
-)
+  fun=dexp,
+  args=list(rate=lambda),
+  aes(col="Theoretical distribution"))+
+  xlim(0,3)+
+  xlab("x")+
+  ggtitle("Generated samples from exponential distribution")
 ```
+The histogram of the simulated values seems to be pretty close to the theoretical distribution. We also check the empirical mean and variance and compare it to the theoretical mean and variance. The theoretical mean and variance is given by
+$$
+E(X)=\frac{1}{\lambda}=\frac{1}{3} \ \ Var(X)=\frac{1}{\lambda^2}=\frac{1}{9}
+$$
+```{r}
+est_mean=mean(generate_f_1)
+est_var=var(generate_f_1)
+```
+The estimated mean is `r est_mean` and the estimated variance is `r est_var`. Both values are close to the theoretical.
 
-## 2
+### 2 Sampling from function g(x)
 
 a)
 
-We want to find the cumulative distribution function and the inverse of the cumulative distribution function when the probability density function is
+We want to find the cumulative distribution function and the inverse of the cumulative distribution function when the probability density function is given by
 
-$$
-g(x)=
-$$
+\begin{equation} \label{eq:gx}
+  g(x) =
+  \begin{cases}
+    c x^{\alpha-1} & \text{if } 0 < x < 1,
+    \\
+    ce^{-x} & \text{if } 1 \leq x, \\
+    0 & \text{otherwise},
+  \end{cases}
+\end{equation}
+
+
 The cumulative distribution $G(x)$ is given by
 $$
 G(x)=\int_{-\infty}^{x} g(t) dt
@@ -118,17 +134,22 @@ $$
 \int_{0}^{1}ct^{\alpha-1}+\int_{1}^{\infty}ce^{-t}dt=1 
 $$
 $$
-\frac{c}{\alpha}+c \cdot\left [-e^{-t} \right]_{1}^{\infty}=\frac{c}{\alpha}+\frac{c}{e} 
+\frac{c}{\alpha}+c \cdot\left [-e^{-t} \right]_{1}^{\infty}=\frac{c}{\alpha}+\frac{c}{e} \implies \frac{c}{\alpha}+\frac{c}{e}=1 \ \ \implies  c=\frac{\alpha e}{e+\alpha}.
 $$
-$$
-\frac{c}{\alpha}+\frac{c}{e}=1 \ \ \implies  c=\frac{\alpha e}{e+\alpha}.
-$$
+Thus, the cumulative distribution function is
 
-The inverse of this cumulative distribution function can be found by solving the following equation for $x$,
+\begin{equation} \label{eq:gx}
+  G(x) =
+  \begin{cases}
+    \frac{e}{e+\alpha} x^{\alpha} & \text{if } 0 < x < 1,
+    \\
+    \frac{e}{e+\alpha} -\frac{\alpha e^{1-x}}{e+\alpha}+\frac{\alpha}{e+\alpha} & \text{if } 1 \leq x, \\
+    0 & \text{otherwise},
+  \end{cases}
+\end{equation}
 
-$$
-y=G(x).
-$$
+The inverse of this cumulative distribution function can be found by solving $y=G(x)$ for $x$.
+
 For $0<x<1$, we have
 
 $$
@@ -148,64 +169,104 @@ $$
 \implies G^{-1}(y)=\ln \left (\frac{\alpha e}{(1-y)(e+\alpha)} \right)
 $$
 
-For $x=1,$ we have 
-$$
-1=\ln \left (\frac{e \alpha}{(1-y)(e+\alpha)} \right) \implies e=\frac{e \alpha}{(1-y)(e+\alpha)} \implies y=1-\frac{\alpha}{\alpha+e}
-$$
-When $x=\infty$, $y=1.$ Therefore the inverse cumulative function is 
 
-### b
+When $x=\infty$, we have $y=1.$ Therefore the inverse cumulative function is 
+
+\begin{equation} \label{eq:gx}
+  G^{-1}(y) =
+  \begin{cases}
+    \left (\frac{y(e+\alpha)}{e} \right)^{1/\alpha} & \text{if } 0 < y < \frac{e}{e+\alpha},
+    \\
+    \ln \left (\frac{\alpha e}{(1-y)(e+\alpha)} \right) & \text{if } \frac{\alpha}{\alpha +e} \leq y < 1, \\
+    0 & \text{otherwise},
+  \end{cases}
+\end{equation}
+
+b)
 
 The inversion method is used to generate samples from $g$.
 
 ```{r}
-  sample_g = function(n, alpha) {
-    c = (alpha * exp(1)) / (alpha + exp(1))
-    u = runif(n)
-    samples = vector(length=n)
-    samples[u < c/alpha] = (alpha/c*u[u < c/alpha])^(1/alpha)
-    
-    samples[u >= c/alpha] = log(c / (1 - u[u >= c/alpha]))
-    return(samples)
+  sample_from_g = function(n, alpha) {
+    #generate samples from unif(0,1)
+    u<-runif(n)
+    #x=G^(-1)(u)
+    x<-vector()
+    for(i in 1:n)
+    {
+      if(u[i]<((exp(1))/(exp(1)+alpha)))
+      {
+        x[i]=((u[i]*(exp(1)+alpha))/(exp(1)))^(1/alpha)
+      }
+      else if(u[i]>=((exp(1))/(exp(1)+alpha)))
+      {
+        x[i]=log((alpha*exp(1))/((1-u[i])*(exp(1)+alpha)))
+      }
+    }
+    return(x)
   }
 ```
 
-The result for $\alpha=2$ and $n=10000$ is plotted against the theoretical distribution.
+The result for $\alpha=0.8$ and $n=10000$ is plotted against the theoretical distribution.
 
 ```{r}
-
+#The theoretical distribution
   density_g = function(x, alpha) {
-    # Normalizing constant c:
-    c = alpha*exp(1)/(alpha + exp(1))
-    
-    # Create an empty vector of same length as x:
-    density = vector(length = length(x))
-    
-    # All elements corresponding to x < 1:
-    density[x < 1.] = c*x[x<1.]^(alpha-1)
-    
-    # All elements corresponding to x >= 1:
-    density[x >= 1.] = c*exp(-x[x>=1.])
-    return(as.double(density))
+    # The Normalizing constant
+    c = (alpha*exp(1))/(alpha + exp(1))
+    #Create an empty vector with the length equal to the number of x-values
+    x_final = vector(length = length(x))
+    #Fill in the values in g(x)
+    for(i in 1:length(x))
+    {
+      if(x[i]>0 & x[i]<1)
+      {
+        x_final[i]<-c*x[i]^(alpha-1)
+      }
+      else if(1<=x[i])
+      {
+        x_final[i]<-c*exp(-x[i])
+      }
+    }
+    return(x_final)
   }
 
-
 n=1000000
-alpha=0.75
-sample_f2<-sample_g(n,alpha)
+alpha=0.80
+sample_g<-sample_from_g(n,alpha)
 ggplot()+
   geom_histogram(
-    data=as.data.frame(sample_f2),
-    mapping=aes(x=sample_f2,y=..density..),
+    data=as.data.frame(sample_g),
+    mapping=aes(x=sample_g,y=..density..),
     binwidth=0.01
     
   )+
-  stat_function(fun=density_g,args=list(alpha=alpha))+
-  xlim(0,3)
+  stat_function(fun=density_g,args=list(alpha=alpha), aes(col="Theoretical distribution"))+
+  xlim(0,3)+xlab("x")+ggtitle("Generated samples from g(x)")
   
 ```
+We see that the histogram gives a relatively similar plot as the theoretical distribution. 
+```{r}
+est_mean_g<-mean(sample_g)
+est_var_g<-var(sample_g)
+```
 
-## 3 
+The empirical mean is `r est_mean_g` and the empirical variance is `r est_var_g`. 
+The theoretical mean is given by
+$$
+E(X)=\int_{0}^{1} cx^{\alpha -1}xdx+\int_{1}^{\infty}c e^{-x}xdx=\frac{c}{\alpha+1}+\frac{2 \alpha}{\alpha+e}
+=0.79
+$$
+which is close to our estimated empirical mean.
+The theoretical variance is given by
+$$
+Var(X)=E(X^2)-E(X)^2 ,\ \ E(X^2)=\int_{0}^{1} cx^{\alpha-1}x^2 dx+\int_{1}^{\infty}c e^{-x} x^2 dx=c/(\alpha+2)+\frac{5 \alpha}{\alpha + e}=1.357
+$$
+$$
+\implies Var(X)=0.7329.
+$$
+
+### 3 Sampling of function f(x) 
 
 We consider the probability density function 
 
@@ -229,9 +290,10 @@ $$
 The pdf is therefore 
 
 $$
-f(x)=\frac{\alpha e^{\alpha x}}{(1+e^{\alpha x})^2}
+f(x)=\frac{\alpha e^{\alpha x}}{(1+e^{\alpha x})^2}.
 $$
 
+b)
 The cumulative distribution function is given by
 
 $$
@@ -251,13 +313,15 @@ This means that the inverse cumulative distribution function is
 $$
 F^{-1}(y)=\frac{1}{\alpha} \ln \left( \frac{y}{1-y} \right)
 $$
-### c)
+ c)
 In the following chunk there is code for a function generating samples form $f$ by using the inversion method
 
 ```{r}
 generate_f <- function(n, alpha)
 {
+  #sample from Uniform(0,1)
   u<-runif(n)
+  #x=F^(-1)(y)
   x<-(1/alpha)*log(u/(1-u))
   return(x)
 }
@@ -265,6 +329,7 @@ generate_f <- function(n, alpha)
 To check that the function works properly, an example with using the function $\alpha=2$ and $n=1000000$ is plotted against the theoretical distribution.
 
 ```{r}
+#Theoretical distribution
 theoretical_f <- function(x, alpha) {
 return(alpha * exp(alpha * x) / (1 + exp(alpha * x))^2)
 }
@@ -278,19 +343,40 @@ n=1000000
 alpha=2
 sample_f <- generate_f(n,alpha)
 ggplot()+
-  geom_histogram(
-    data=as.data.frame(sample_f),
-    mapping=aes(x=sample_f,y=..density..),
-    binwidth=0.001,
-  ) +
-  stat_function(
-    fun=theoretical_f,
-    args=list(alpha=alpha),
-    aes(col="Theoretical distribution")
-  )
+  #Plotting a histogram of the samples
+  geom_histogram(data=as.data.frame(sample_f),
+                 mapping=aes(x=sample_f,y=..density..),
+                 binwidth=0.01)+
+  #Plotting the theoretical distribution
+  stat_function(fun=theoretical_f,
+                args=list(alpha=alpha),
+                aes(col="Theoretical distribution"))+
+  xlab("x")+ 
+  xlim(-4,4)+
+  ggtitle("Generated samples from f(x)")
 ```
 
-## 4.
+The theoretical mean and variance of $X \sim f(x)$ is given by
+$$
+E(X)=\int_{-\infty}^{\infty}\frac{c e^{\alpha x}}{(1+e^{\alpha x})^2}x dx=0
+$$
+$$
+Var(X)=E(X^2)-E(X)^2=E(X^2)
+$$
+We estimate $E(X^2)$
+```{r}
+theo_var_f<-integrate(function(x)(x^2*theoretical_f(x,alpha)),-100,100)$val
+theo_var_f
+```
+We also find the empirical mean and variance
+```{r}
+mean_f<-mean(sample_f)
+var_f<-var(sample_f)
+```
+
+the empirical mean is `r mean_f` and the empirical variance is `r var_f`. Both values are close to the theoretical values. 
+
+### 4 Standard normal distribution
 
 We use the Box-Muller algorithm to represent independent variables which are standard normal distributed. Let $X \sim N(0,1)$ and $Y \sim N(0,1)$ be independent. The joint distribution of these two variables is 
 $$
@@ -308,36 +394,53 @@ $$
 $$
 Y=r \sin(X_1)
 $$
-are normal distributed. $r \sim \sqrt{-2 \log(\text{Unif}(0,1))}$ and $X_2 \sim 2 \pi \text{Unif}(0,1)$
+are normal distributed. If we have $U_1 \sim \text{Uniform}(0,1)$ and $U_2 \sim\text{Uniform}(0,1)$, then we have $r = \sqrt{-2 \log(u_1)}$ and $X_2 = 2 \pi u_2$
 
-In the following chunk, the Box-Muller algorithm is implemented. We first draw two samples from $\text{Unif}(0,1).$ We then calculate $r$ and $X_1$ and at last return $X=r \cos(X_1)$ which is standard normal distributed.
+In the following chunk, the Box-Muller algorithm is implemented. We first draw two different samples from $\text{Unif}(0,1).$ We then calculate $r$ and $X_1$ and at last return $X=r \cos(X_1)$ which is standard normal distributed.
 
 ```{r}
 generate_from_normal <- function(n)
 {
+  #generate samples from u1 and u2
   u1<-runif(n)
   u2<-runif(n)
+  #calculate r
   r<-sqrt(-2*log(u1))
+  #calculate x_1
   x_1<-2*pi*u2
   x=r*cos(x_1)
-  return(x)
+  return(c(x))
 }
+#Generating 1000000 samples from the normal distribution
 n=1000000
 sample_normal<-generate_from_normal(n)
 ggplot()+
+  #Plotting the samples
   geom_histogram(
     data=as.data.frame(sample_normal),
     mapping=aes(x=sample_normal, y=..density..),
-    binwidth=0.001
+    binwidth=0.01
   )+
+  #Plotting the standard normal distribution
   stat_function(
     fun=dnorm,
     args=list(mean=0,sd=1),
-    aes(col="Theoretical distribution")
-  )
+    aes(col="Theoretical distribution"))+ggtitle("Samples from the standard normal distribution")
+  
 ```
 
-## 5.
+We calculate the empirical mean and the empirical variance of the samples.
+
+```{r}
+mean_std_normal<-mean(sample_normal)
+var_std_normal<-var(sample_normal)
+```
+
+We expect the mean and variance to be $0$ and $1$ respectively. The empirical mean and variance are `r mean_std_normal` and `r var_std_normal` respectively, which is close to what we expected.
+
+
+### 5 d-variate normal distribution
+
 We want to to simulate from a d-variate normal distribution with mean vector $\mu$ and covariance matrix $\Sigma.$ . Let $x \sim \text{Normal}(0,I_d)$, where $I_d$ is the identity matrix. Then
 
 $$
@@ -351,47 +454,57 @@ generate_d_normal <-function(n,mu,cov,d)
 {
   #D is the cholesky decomposition of the covariance matrix
   D<-t(chol(cov))
-  x<-generate_from_normal(n)
-  y<-mu+D %*% x
+  x<-generate_from_normal(d*n)
+  X<-matrix(x, nrow=d, ncol=n)
+  y<-mu+D %*% X
   return(y)
 }
 ```
-An example of this a covariance matrix is
+the covariance matrix we use to test the function is
 
 $$
 \left(\begin{array}{ccc} 
-1 & 3&5\\
-3 & 2&2 \\
-5&2&3
+3 & -1&1\\
+-1 & 4&-1 \\
+1&-1&3
 \end{array}\right)
 $$
 
-To test whether the function works, we use 
-$\mu=[1,7,2]^T$ and $\Sigma$
-
-```{r,eval=FALSE}
+and the mean vector is 
+$\mu=[1,7,2]^T$.
+```{r}
 n<-10000
 mu<-c(3,4,5)
-cov_mat<-cbind(c(2,-1,0), c(-1,2,-1), c(0,-1,2))
+cov_mat<-cbind(c(3,-1,1), c(-1,4,-1), c(1,-1,3))
 cov_mat
 sample_normal_d<-generate_d_normal(n,mu,cov_mat,3)
 ```
+We check whether the function generates good estimates of the mean vector and the covariance matrix.
 
-# Problem B: The gamma distribution
+```{r}
+mu_hat<-rowMeans(sample_normal_d)
+cov_mat<-cov(t(sample_normal_d))
+mu_hat
+cov_mat
+```
+As seen in the chuck above, the algorithm generates pretty good estimated of $\mu$ and $\Sigma$.
 
-## 1.
+
+## Problem B: The gamma distribution
+
+### 1 Rejection sampling
 The gamma distribution with parameters $\alpha \in (0,1)$ and $\beta=1$ has probability density function
 
 \begin{equation} \label{eq:gx}
   f(x) =
   \begin{cases}
-    \frac{1}{\Gamma (\alpha)} x^{\alpha-1} e^{-x} & \text{if } 0 < x < 1,
+    \frac{1}{\Gamma (\alpha)} x^{\alpha-1} e^{-x} & \text{if } 0 < x,
     \\
     0 & \text{otherwise},
   \end{cases}
 \end{equation}
 
-### a)
+a)
 The acceptance probability $\gamma$ in the rejection sampling algorithm is given by 
 
 $$
@@ -426,33 +539,61 @@ We need to choose the smallest possible value for $c$.
 
 For $0<x<1$
 $$
- c \geq\frac{(\alpha+e)}{\alpha e \Gamma(\alpha)} \geq\frac{e^{-x}(\alpha+e)}{\alpha e \Gamma(\alpha)} =\frac{f(x)}{g(x)}
+ c \geq\frac{(\alpha+e)}{\alpha e \Gamma(\alpha)} \geq\frac{e^{-x}(\alpha+e)}{\alpha e \Gamma(\alpha)} =\frac{f(x)}{g(x)},
 $$
-For $x \geq 1$
+and for $x \geq 1$
 
 $$
 c \geq\frac{(\alpha+e)}{\alpha e \Gamma(\alpha)} \geq\frac{x^{\alpha-1}(\alpha+e)}{ \Gamma(\alpha) \alpha e} =\frac{f(x)}{g(x)}.
 $$
-We can therefore choose $c=\frac{(\alpha+e)}{\alpha e \Gamma(\alpha)}.$
-(b)
-The rejection sampling algorithm is used to generate a vector of n independent samples from $f$.
+We can therefore choose $c=\frac{(\alpha+e)}{\alpha e \Gamma(\alpha)}.$ The acceptance probability is therefore
+\begin{equation} \label{eq:gx}
+  \gamma =
+  \begin{cases}
+    x^{\alpha -1} & \text{if } x \geq 1,
+    \\
+    e^{-x} & \text{if } 0 < x< 1, 
+  \end{cases}
+\end{equation}
 
+(b)
+The rejection sampling algorithm is used to generate a vector of n independent samples from $f$. We use $n=100000$ and $\alpha=0.8$
 
 
 ```{r}
+#Theoretical pdf of Gamma
+theoretical_gamma<-function(x, alpha)
+{
+  if(0<x)
+  {
+    return((1/gamma(alpha))*x^(alpha-1)*exp(-x))
+  }
+  else if(x<=0)
+  {
+    return(0)
+  }
+  
+}
 sample_gamma<-function(n,alpha)
 {
-  x<-vector(mode="numeric", length=n)
+  x<-vector()
+  #The c we found
   c<-(alpha+exp(1))/(alpha+exp(1))
   for (i in 1:n) {
     finished=0
     while(finished==0)
     {
-    xi<-sample_g(1,alpha)
+      #sample from g in A.2
+    xi<-sample_from_g(1,alpha)
+    #samples from Unif(0,1)
     u<-runif(1)
-    f<-dgamma(xi,alpha)
+    #The pdf of gamma with alpha in (0,1) and beta=1
+    f<-theoretical_gamma(xi,alpha)
+    #Pdf of g in A.2
     g<-density_g(xi,alpha)
+    #Acceptance probability
     gamma<-(1/c)*(f/g)
+    #Accept if u<=acceptance probability
     if(u<=gamma)
     {
       x[i]=xi
@@ -462,28 +603,35 @@ sample_gamma<-function(n,alpha)
   }
   return(x)
 }
-
+#Generate 100000 samples with alpha=0.8
 x_gamma<-sample_gamma(100000,0.8)
+#Plot the samples
 ggplot()+
   geom_histogram(
     data=as.data.frame(x_gamma),
     mapping=aes(x=x_gamma,y=..density..),
-    binwidth=0.1
+    binwidth=0.15
+    #Plot the theoretical density
   )+
   stat_function(
     fun=dgamma,
-    args=list(shape=0.8)
-  )+
-  xlim(0,3)
-
+    args=list(shape=0.8),
+    aes(col="Theoretical distribution"))+
+      ggtitle("Simulation of gamma distribution with alpha=0.8")+xlim(0,3)+ylim(0,1.5)+xlab("x")
+```
+The theoretical mean for a Gamma-distribution is $\alpha/ \beta$, which is $0.8$ in our case. The theoretical variance is $\alpha / \beta^2,$ which is also $0.8$ in our case. 
+```{r}
+emp_mean_gamma_1<-mean(x_gamma)
+emp_var_gamma_1<-var(x_gamma)
 ```
 
+The empirical mean and variance are `r emp_mean_gamma_1` and `r emp_var_gamma_1` respectively. Both are close to the theoretical values. 
 
-## 2.)
-### (a)
+### 2 Ratio of uniforms method
+(a)
 $a=\sqrt{\text{sup}_{x} f^{*}(x)},$ where 
 \begin{equation} \label{eq:gx}
-  f(x) =
+  f^{*}(x) =
   \begin{cases}
     x^{\alpha-1} e^{-x} & \text{if } 0 < x ,
     \\
@@ -506,7 +654,7 @@ $$
 $$
 \implies x=\alpha-1.
 $$
-For $\alpha>0,$ the supremum is given by
+The supremum for $\alpha \in (0,1)$ is given by
 
 $$
 \text{sup}_{x} f^{*}(x)=(\alpha-1)^{\alpha-1}e^{\alpha-1}
@@ -534,26 +682,23 @@ Thus, the supremum is \begin{equation} \label{eq:gx}
     0 & \text{otherwise},
   \end{cases}
 \end{equation},
-
+for $x \geq0$,
 which means that the constant $b_{+}$ is given by
 
 $$
-b_{+}=\sqrt{(\alpha+1)^{(\alpha+1)}e^{-\alpha-1}}
+b_{+}=\sqrt{(\alpha+1)^{(\alpha+1)}e^{-\alpha-1}}.
 $$
 
-and
+The constant $b_{-}$ is given by $b_{-}=\sqrt{sup_{x \leq 0}(x^2 f^{*}(x))}=0$, since $f^{*}(x)=0$ when $x \leq0$
 
-$$
-b_{-}=0
-$$
-### b.)
+b.)
 
 The algorithm to generate $n$ samples from $f$ has to be implemented on log-scale.
 The log-transformations are
 $$
 X_1 \sim \text{Uniform}(0,a) \implies \log(X_1)=\log(a \cdot U_1)=\log(a)+log(U_1)
 $$
-where $U_1 \sim \text{Uniform}(0,1)$
+where $U_1 \sim \text{Uniform}(0,1).$ We also have
 $$
 X_2 \sim \text{Uniform}(b_{-}, b_{{+}})=\text{Uniform}(0,b_{+}) \implies \log(X_2)=\log(b_{+} \cdot U_2)=\log(b_+)+\log(U_2)
 $$
@@ -582,68 +727,92 @@ $$
   \end{cases}
 \end{equation}
 
+\begin{equation} \label{eq:gx}
+   =
+  \begin{cases}
+    (\alpha -1) (\log(x_2)-\log(x_1)) -\exp(\log (x_2)- \log(x_1)) & \text{if } 0 < x_2/x_1 ,
+    \\
+    0 & \text{otherwise},
+  \end{cases}
+\end{equation}
+
 We have 
 $$
-0 \leq x_1 \leq \sqrt{f^{*}(x_2/x_1)} \implies \log(x_1) \implies \frac{1}{2} \log(f^{*}(x_2/x_1))
+0 \leq x_1 \leq \sqrt{f^{*}(x_2/x_1)} \implies \log(x_1) \implies \frac{1}{2} \log(f^{*}(x_2/x_1)).
 $$
-
+The ratio of uniforms method is implemented below.
 ```{r}
-
-log_f_star <- function(x, alpha ) {
-if(x<=0)
-{
-  return(0)
-}
-  else if(x>0)
-  {
-    return(log(x^(alpha-1)*exp(-x)))
-  }
-}
-
-
 # Function generating samples from f
 sample_gamma_2<-function(n,alpha)
 {
+  #The a constant found in B.2.a
   a<-sqrt((alpha-1)^(alpha-1)*exp(-alpha+1))
+  #The b+ constant found in B.2.a
   b<-sqrt((alpha+1)^(alpha+1)*exp(-alpha-1))
+  #the logarithm of these constants
   loga <- log(a)
   logb <- log(b)
-  x<-vector()
+  #Create an empty vector
+  x<-vector(length=n)
+  #Count the number of trials
   count<-0
-  for(i in 1:n)
+  i=1
+  while(i<=n)
   {
-    finished=0
-    while(finished==0)
-    {
+      count<-count+1
       log_x1<-loga+log(runif(1))
       log_x2<-logb+log(runif(1))
-      fun<-log_f_star(exp(log_x2-log_x1), alpha)
-      if(log_x1<=(1/2)*fun)
+      #log f*(x2/x1)
+      fun_star<-(alpha-1)*(log_x2-log_x1)-exp(log_x2-log_x1)
+      #Acceptance step
+      if(log_x1<=(1/2)*fun_star)
       {
         x[i]=exp(log_x2-log_x1)
-        finished=1
+        i<-i+1
       }
-      count<-count+1
-    }
   }
   return(list(x=x,count=count))
-}
+  }
 
 ```
 
-We plot the results
+We plot the results for $n=10000$ and $\alpha=30$.
 ```{r}
 n<-10000
 alpha<-30
+#generate samples with n=10000 and alpha=30
 x<-sample_gamma_2(n,alpha)$x
-
+#Plot the density of the generated samples
 ggplot()+
   geom_histogram(
     data=as.data.frame(x), mapping=aes(x=x, y=..density..), binwidth=0.7)+
-  stat_function(fun=dgamma, args=list(shape=alpha))
+  #Plot the theoretical distribution
+  stat_function(fun=dgamma, args=list(shape=alpha), aes(col="Theoretical distribution"))+ggtitle("Simulation of gamma distribution with alpha=30 and beta=1")
+```
+The theoretical mean and variance are both $30.$ 
+```{r}
+#Empirical mean and variance
+emp_mean_gamma_2<-mean(x)
+emp_var_gamma_2<-var(x)
+```
+The empirical mean and variance are `r emp_mean_gamma_2` and `r emp_var_gamma_2` respectively. Both values are close to the theoretical values. 
+
+Now we want to find out how many tries the algorithm needs to generate $n=1000$ realizations for $\alpha \in (1,100].$
+In the code below, the number of trials for $\alpha=2,..,100$ is stored and plotted.
+
+```{r}
+n=1000
+trials<-vector()
+for(i in 2:100)
+{
+  x<-sample_gamma_2(n,i)$count
+  trials[i-1]<-x
+}
+plot(x=2:100, y=trials, xlab="alpha", ylab="trials", main="Number of trials plotted against different values of alpha")
 ```
 
-## 3.
+
+### 3 Simulation of the Gamma distribution
 
 We want to write an R function that generates a vector of $n$ independent samples from a gamma distribution with parameters $\alpha$ and $\beta$. So far we have made functions that generate from a gamma distribution with $\alpha \in (0,1) \ \ \text{and} \ \ \alpha \in(1,\infty)$ and $\beta=1.$ The parameter $\beta$ is an inverse scale parameter. This means that if $X \sim \text{Gamma}(\alpha,1),$ then $\frac{1}{\beta} X \sim \text{Gamma}(\alpha, \beta).$ Thus, when we sample from $\text{Gamma}(\alpha,1),$ we can multiply the samples with $1/\beta.$ The parameter $\alpha$ can also be $1.$ We have already made a function that generate samples from the exponential distribution. If $X \sim \text{Gamma}(1,\beta),$ the $X$ has pdf
 $$
@@ -676,7 +845,7 @@ sample_gamma_final<-function(n, alpha,beta)
 }
 ```
 
-We generate realizations for the different cases. The first we do is when $\alpha=2$ and $\beta=3.$ 
+We generate realizations for the different cases. The first we do is when $\alpha=3$ and $\beta=2.$ 
 ```{r}
 alpha=3
 beta=2
@@ -689,8 +858,8 @@ ggplot()+
   xlim(0,5)+
 stat_function(
   fun=dgamma,
-  args=list(shape=alpha, rate=beta)
-)
+  args=list(shape=alpha, rate=beta), aes(col="Theoretical distribution")
+)+ xlab("x")+ ggtitle("Simulation of Gamma distribution with alpa=3 and beta=2")
 ```
 
 We try an example for when $\alpha=1 \ \ \text{and} \ \ \beta=2$
@@ -700,37 +869,44 @@ alpha=1
 beta=2
 n=10000
 sampling_gamma<-sample_gamma_final(n,alpha,beta)
-
+#Plotting
 ggplot()+
   geom_histogram(
     data=as.data.frame(sampling_gamma),                     mapping=aes(x=sampling_gamma,y=..density..), binwidth=0.1)+
-  xlim(0,5)+
+  xlim(0,4)+
 stat_function(
   fun=dgamma,
-  args=list(shape=alpha, rate=beta)
-)
+  args=list(shape=alpha, rate=beta), aes(col="Theoretical distribution")
+)+xlab("x")+ggtitle("Simulation of Gamma distribution with alpa=1 and beta=2")
 ```
-At last, we try when $alpha=0.5$ and $\beta=3$
+At last, we try when $\alpha=0.5$ and $\beta=3$
 
 ```{r}
 alpha=0.5
 beta=3
 n=10000
 sampling_gamma<-sample_gamma_final(n,alpha,beta)
-
+#Plotting
 ggplot()+
   geom_histogram(
     data=as.data.frame(sampling_gamma),                     mapping=aes(x=sampling_gamma,y=..density..), binwidth=0.01)+
   xlim(0,5)+xlim(0,2)+ylim(0,6)+
 stat_function(
   fun=dgamma,
-  args=list(shape=alpha, rate=beta)
-)
+  args=list(shape=alpha, rate=beta), aes(col="Theoretical distribution")
+)+ xlab("x")+ ggtitle("Simulation of gamma distribution with alpha=0.5 and beta=3")
 ```
 
+We calculate the empirical mean and variance in the last example.
+```{r}
+emp_mean_gamma_3<-mean(sampling_gamma)
+emp_var_gamma_3<-var(sampling_gamma)
+```
+The empirical mean and variance are `r emp_mean_gamma_3` and `r emp_var_gamma_3` respectively. The theoretical values are 
+$E(X)=\alpha / \beta=1/6$ and $Var(X)=\alpha / \beta^2=1/18,$ which means that our estimates are close to the theoretical values. 
 
-## 4.
-### a) {#B4a}
+### 4 Sampling of Beta distribution
+
 
 Let $x \sim \text{Gamma}(\alpha,1)$ and $y \sim \text{Gamma}(\beta,1)$ be independent 
 and let $z=x/(x+y)$. The pdfs of $X$ and $Y$ are
@@ -793,44 +969,57 @@ $$
 \implies 
 f_Z(z)=\frac{v^{\alpha+\beta-1}z^{\alpha -1}(1-z)^{\beta-1}e^{-v}}{\Gamma(\alpha) \Gamma(\beta)} \cdot \frac{\Gamma(\alpha + \beta)}{v^{\alpha +\beta -1 }e^{-v}}=\frac{\Gamma(\alpha + \beta)z^{\alpha-1}(1-z)^{1-\beta}}{\Gamma(\alpha) \Gamma(\beta)}
 $$
-This is the density of a $beta(\alpha, \beta)-$ distribution. 
+This is the density of a $\text{beta}(\alpha, \beta)$ distribution. 
 
-### (b)
+(b)
 This means that we can use the function for generating samples from a $\text{Gamma}(\alpha, \beta)$ to sample from $x \sim \text{Gamma}(\alpha, 1)$ and $y \sim \text{Gamma}(\beta,1)$
-and return $z=x/(x+y)$
+and return $z=x/(x+y)$.
 In the following code, $n$ independent samples from a beta function is generated.
 
 ```{r}
+#Sample from a beta distribution
 sample_from_beta <-function(n,alpha,beta)
 {
+  #first sample from Gamma(alpha, 1)
   x<-sample_gamma_final(n,alpha,1)
+  #Second sample from Gamma(beta,1)
   y<-sample_gamma_final(n,beta,1)
+  #return z
   z<-x/(x+y)
   return(z)
 }
 ```
-We generate sample from the function and plot it together with the theoretical distribution.
+We generate sample from the function and plot it together with the theoretical distribution with $\alpha=3$ and $\beta=2$.
 
 ```{r}
 alpha=3
 beta=2
 sampling_beta<-sample_from_beta(n, alpha, beta)
-
+#plotting
 ggplot()+
   geom_histogram(
     data=as.data.frame(sampling_beta),
     mapping=aes(x=sampling_beta, y=..density..),
     binwidth=0.01
   )+
-  stat_function(fun=dbeta, args=list(shape1=alpha,shape2=beta))
+  stat_function(fun=dbeta, args=list(shape1=alpha,shape2=beta), aes(col="Theoretical distribution"))+ggtitle("Simulation from the Beta distribution with alpha=3 and beta=2")
 ```
 
+The theoretical mean and variance is given by
+$$
+E(X)=\frac{\alpha}{\alpha + \beta}=0.6 \ \ \text{and} \ \ \text{Var}(X)=\frac{\alpha \beta}{(\alpha+\beta)^2(\alpha +\beta+1)}=0.04
+$$
+```{r}
+emp_mean_beta<-mean(sampling_beta)
+emp_var_beta<-var(sampling_beta)
+```
+The emirical mean and variance are `r emp_mean_beta` and `r emp_var_beta` respectively. 
 
-# Problem C: Monte Carlo integration and variance reduction
+## Problem C: Monte Carlo integration and variance reduction
 
 Here we will consider Monte Carlo integration to estimate $\theta = P(X>4)$ when $X \sim N(0,1)$. Then we will compare the variance reduction in importance sampling and antithethic sampling.
 
-## 1 Monte Carlo integration {#C1}
+### 1 Monte Carlo integration {#C1}
 Let $h(X) = I(X>4)$, where $I$ is the indicator function, such that
 $$
 \begin{split}
@@ -888,7 +1077,7 @@ theta
 Here we see an error in the $1\cdot10^{-5}$ decimal and that the true value coincide with the $95\%$ confidence interval.
 
 
-## 2 Importance sampling {#C2}
+### 2 Importance sampling {#C2}
 Here we will use importance sampling on the same problem as in [C1](#C1) to try to reduce the variance of the Monte Carlo integration. The proposal distribution is
 $$
 g(x) = 
@@ -957,14 +1146,12 @@ expSampler <- function(n){
   u = runif(n)
   return(sqrt(16-2*log(1-u)))
 }
-
 w <- function(x) {
   # Weight function
   f = dnorm(x)
   g = ifelse(x>4, x*exp(8-0.5*x^2),0)
   return(f/g)
 }
-
 set.seed(321)
 gx        = expSampler(n) # Sample from proposal
 gh        = (gx>4)*1
@@ -986,7 +1173,7 @@ $$
 $$
 From the previous results we get the estimated number of samples, $n =$ `svMC / svIS` $=$ `r n*svMC / svIS`, needed to obtain the same precision as we did using importance sampling as a variance reducing technique.  
 
-## 3 Antithetic Sampling
+### 3 Antithetic Sampling
 Now we will combine the importance sampling with the use of antithetic variates. We start by modifying the sample generator for $g$ in task [C2](#C2) so that it produces $n$ pairs, $X=x_i$ and $Y=y_i$, of antithetic variates generated from $G^{-1}$ with inputs $u_i$ and $1-u_i$, respectively.
 ```{r C3antitheticSampler, options}
 expSamplerAnti <- function(n) {
@@ -1043,8 +1230,9 @@ rbind(results, AS=resultAS)
 ```
 Here we see an even lower variance and slightly better estimate with regards to the error.
 
-# Problem D: Rejection sampling and importance sampling
+## Problem D: Rejection sampling and importance sampling
 
+### 1.
 The observed data is $y=[y_1,y_2,y_3,y_4]=[125,18,20,34]$
 
 
@@ -1059,39 +1247,51 @@ $$
 We find the maximum of $f(\theta | y)$ given the observed values. 
 
 ```{r}
+#f-posterior
 f_posterior <-function(theta)
 {
-  return((2+theta)^125*(1-theta)^(18+20)*theta^(34))
+  f<-(2+theta)^125*(1-theta)^(18+20)*theta^(34)
+  return(f)
 }
+```
 
+
+```{r}
+#Find the c-values
 c<-optimize(f_posterior, c(0,1), maximum = TRUE)$objective
 ```
 
 ```{r}
-
-rejection_sampling_f <-function(n, p){
-  # p is the posterior function
-  x<-vector(mode="numeric",length=n)
+#rejection samping
+rejection_sampling_f <-function(n){
+  x<-vector()
   num_gen=0
-  for(i in 1:n){
-    finished=0
-    while(finished==0){
-      xi<-runif(1)
-      alpha<-(1/c)*p(xi)
-      u<-runif(1)
-      if(u<=alpha){
-        x[i]=xi
-        finished=1
-        }
-      num_gen<-num_gen+1
-      }
-    }
+for(i in 1:n)
+{
+  finished=0
+while(finished==0){
+  #Generate form U(0,1)
+  xi<-runif(1)
+  #Acceptance probability
+  alpha<-(1/c)*f_posterior(xi)
+  #Generate for u
+  u<-runif(1)
+  #Accept for x
+  if(u<=alpha)
+  {
+    x[i]=xi
+    finished=1
+  }
+  num_gen<-num_gen+1
+}  
+  
+}
   return(list(sample_f=x,numbers=num_gen))
 }
 ```
 
 
-## 2. {#D2}
+### 2.
 
 We want to estimate the posterior mean of $\theta$ by Monte-Carlo integration using $M=10000$ samples from $f(\theta | y).$ The Monte-carlo estimate of the mean is given by
 $$
@@ -1106,11 +1306,11 @@ $$
 $$
 \implies k=\frac{1}{\int_{0}^{1}(2+\theta)^{y_1}(1-\theta)^{y_2+y_3} \theta^{y_4} d \theta} 
 $$
-In the code below, a histogram of the sample is drawn and is compared to the theoretical distribution. The estimated posterior mean of $\theta$ is also found and compared to the theoretical value.
+In the code below, a histogram of the sample is drawn and is compared to the theoretical distribution. The estimated posterior mean of $\theta$ is also found and compared to the theoretical value. The estimated mean is plotted as a line in the plot below.
 ```{r}
-
+#normalizing constant
 norm_con<-integrate(f_posterior,0,1)$val
-
+#The exact posterior
 posterior <-function(theta)
 {
   return((1/norm_con)*f_posterior(theta))
@@ -1119,31 +1319,32 @@ posterior <-function(theta)
 
 
 ```{r}
+#Generate samples
 M<-10000
-theta_sampling<-rejection_sampling_f(M, f_posterior)$sample_f
+theta_sampling<-rejection_sampling_f(M)$sample_f
 
-ggplot()+
-  geom_histogram(data=as.data.frame(theta_sampling),          mapping=aes(x=theta_sampling,y=..density..),
-                 binwidth = 0.01)+
-stat_function(
-  fun=posterior,
-)
-```
-
-```{r}
+#Plot the
 mu_hat<-mean(theta_sampling)
 mu_hat
 
 mu_theoretical<-integrate(function(theta)(theta*posterior(theta)),0,1)$val
 mu_theoretical
+ggplot()+
+  geom_histogram(data=as.data.frame(theta_sampling),          mapping=aes(x=theta_sampling,y=..density..),
+                 binwidth = 0.01)+
+stat_function(
+  fun=posterior, aes(col="Theoretical distribution")
+)+ xlab("Theta")+ geom_vline(aes(xintercept=mu_hat, col="Estimated posterior mean"))
 ```
+
+
 The estimated posterior mean of $\theta$ using Monte-Carlo integration is `r mu_hat`. The theoretical value of the mean using numerical integration is `r mu_theoretical`.
 
-## 3.
+### 3.
 The number of random numbers the sampling algorithm needs to generate on average is given by the total number of random numbers the the algorithm generates divided by the number of samples of $f(\theta|y)$
 
 ```{r}
-total_number<-rejection_sampling_f(M, f_posterior)$numbers
+total_number<-rejection_sampling_f(M)$numbers
 num<-total_number/10000
 ```
 The amount of random numbers needed to generate to obtain one sample of $f(\theta|y)$ is `r num`. The overall acceptance probability is given by
@@ -1152,7 +1353,10 @@ P(U \leq \frac{1}{c} \cdot\frac{f(X)}{g(X)})=\int_{-\infty}^{\infty} dx= \frac{f
 $$
 This means that $c$ is the expected number of tries to obtain one sample of $f(\theta|y),$ which is `r c/norm_con`. This number is close to the number from our implemented algorithm.
 
+
 ## 4. Beta$(1,5)$ as prior.
+
+
 In section [D2](#D2) we used a uniform prior for $\theta$. Now we will assume a Beta$(1,5)$ prior instead, that is
 $$
 \begin{split}
@@ -1182,19 +1386,15 @@ f_posterior15 <- function(theta){
   # Posterior when prior is beta(1,5)
   return(f_posterior(theta) * (1-theta)^4)
 }
-
 norm_con15 = integrate(f_posterior15, 0, 1)$val
 c<-optimize(f_posterior15, c(0,1), maximum = TRUE)$objective
-
 posterior15 <- function(theta){
   # Normalized posterior
   return(f_posterior15(theta)/norm_con15)
 }
-
 w <- function(x){
   return((1-x)^4)
 }
-
 impSamp = theta_sampling*w(theta_sampling)
 # Self-normalized IS estimate
 impEst = sum(impSamp)/sum(w(theta_sampling)) 
