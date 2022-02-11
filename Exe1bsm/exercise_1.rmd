@@ -1041,7 +1041,7 @@ confintAS = ASest + lwrUprAS
 resultAS  = c(ASest, confintAS, svAS, abs(theta - ASest))
 rbind(results, AS=resultAS)
 ```
-
+Here we see an even lower variance and slightly better estimate with regards to the error.
 
 # Problem D: Rejection sampling and importance sampling
 
@@ -1153,19 +1153,6 @@ $$
 This means that $c$ is the expected number of tries to obtain one sample of $f(\theta|y),$ which is `r c/norm_con`. This number is close to the number from our implemented algorithm.
 
 ## 4. Beta$(1,5)$ as prior.
-The posterior distribution given a prior $\pi(\theta)$ is given by
-$$
-f(\theta|y)=\frac{f(y|\theta) \pi(\theta)}{\int f(y|\theta) \pi(\theta) d \theta}
-$$
-If the prior has a $\text{beta}(1,5)$ distribution, the posterior is 
-$$
-f(\theta|y) \propto \frac{(1-\theta)^{\beta-1}/B(1,5) (2+\theta)^{y_1}(1-\theta)^{y_2+y_3} \theta^{y_4}}{\int_{0}^{1}(2+\theta)^{y_1}(1-\theta)^{y_2+y_3}\theta^{y_4}(1-\theta)^{\beta-1}/B(1,5) d\theta}
-$$
-$$
-\propto (1-\theta)^{\beta-1}/B(1,5) (2+\theta)^{y_1}(1-\theta)^{y_2+y_3} \theta^{y_4}
-$$
-\textcolor{green}{D4 chris} 
-
 In section [D2](#D2) we used a uniform prior for $\theta$. Now we will assume a Beta$(1,5)$ prior instead, that is
 $$
 \begin{split}
