@@ -1,0 +1,47 @@
+---
+title: "Project 2"
+author: "Erling Fause Steen og Christian Oppegård Moen"
+date: "08 03 2022"
+output: 
+  bookdown::pdf_document2:
+    toc_depth: '3'
+    number_sections: false
+  # pdf_document:
+  # #   toc: no
+  #   toc_depth: '3'
+subtitle: Computer Intensive Statistical Methods
+urlcolor: blue
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE,tidy=TRUE,message=FALSE,warning=FALSE,
+                      strip.white=TRUE,
+                      prompt=FALSE,
+                      cache=TRUE, 
+                      size="scriptsize",
+                      fig.width=7, 
+                      fig.height=5, 
+                      fig.align = "center")
+```
+
+
+## Problem 1
+
+We will look at a portion of the Tokyo rainfall dataset. The response is whether the amount of rainfall exceed 1 mm over a time period, and is given by
+
+$$
+y_t | \tau_t \sim \text{Bin}(n_t,\pi (\tau _t)), \ \ \pi(\tau_t)=\frac{\exp(\tau_t)}{1+\exp(\tau_t)}=\frac{1}{1+\exp(-\tau_t)}.
+$$
+
+## a)
+
+We start by downloading the Tokyo rainfall dataset and plot the response as a function of t.
+
+```{r}
+#Read the rain data
+raindata<-read.csv("C:/Users/erlin/Documents/Beregningskrevende statistiske modeller/Øvinger 2022/rain.rda")
+```
+
