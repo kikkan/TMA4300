@@ -28,6 +28,10 @@ knitr::opts_chunk$set(echo = TRUE,tidy=TRUE,message=FALSE,warning=FALSE,
 ```
 
 
+```{r}
+library(ggplot2)
+```
+
 ## Problem 1
 
 We will look at a portion of the Tokyo rainfall dataset. The response is whether the amount of rainfall exceed 1 mm over a time period, and is given by
@@ -36,12 +40,23 @@ $$
 y_t | \tau_t \sim \text{Bin}(n_t,\pi (\tau _t)), \ \ \pi(\tau_t)=\frac{\exp(\tau_t)}{1+\exp(\tau_t)}=\frac{1}{1+\exp(-\tau_t)}.
 $$
 
-## a)
+## a
 
 We start by downloading the Tokyo rainfall dataset and plot the response as a function of t.
 
 ```{r}
 #Read the rain data
-raindata<-read.csv("C:/Users/erlin/Documents/Beregningskrevende statistiske modeller/Øvinger 2022/rain.rda")
+load("C:/Users/erlin/Documents/Beregningskrevende statistiske modeller/TMA4300/Exe2bsm/rain.rda")
 ```
+
+We start by plotting the amount of rainfall against each day. 
+```{r}
+##Plotting the data
+head(rain)
+ggplot(data=rain, mapping=aes(x=day, y=n.rain))+geom_line()+xlab("Day")+ylab("Number of days with more than 1 mm rain")
+```
+
+From the plot, we can see that there are fewer days in the start of the year and in the end of the year with an amount of rainfall over 1 mm. This is in January and December. The number of days steadily increases until the beggining of the summer which seems to be the period with the most days with an amount of rainfall over 1 mm. Then, the amount of days decreases during july and august before increasing during the autumn. This is somewhat consistent with the results we get from googling the amount of days with precipitation in Tokyo, where we can see that June and September are the months with the most days with rainfall and December and January are the month with the most. 
+
+## b
 
