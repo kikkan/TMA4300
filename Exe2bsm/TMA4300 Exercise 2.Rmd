@@ -37,12 +37,11 @@ library(ggplot2)
 
 We will look at a portion of the Tokyo rainfall dataset. The response is whether the amount of rainfall exceed 1 mm over a time period, and is given by
 
-$$
-y_t | \tau_t \sim \text{Bin}(n_t,\pi (\tau _t)), \ \ \pi(\tau_t)=\frac{\exp(\tau_t)}{1+\exp(\tau_t)}=\frac{1}{1+\exp(-\tau_t)}.
-$$
+\begin{equation}(\#eq:1yt)
+  y_t | \tau_t \sim \text{Bin}(n_t,\pi (\tau _t)), \ \ \pi(\tau_t)=\frac{\exp(\tau_t)}{1+\exp(\tau_t)}=\frac{1}{1+\exp(-\tau_t)}.
+\end{equation}
 
 ## a)
-
 We start by downloading the Tokyo rainfall dataset and plot the response as a function of t.
 
 ```{r loadData}
@@ -60,5 +59,40 @@ ggplot(data=rain, mapping=aes(x=day, y=n.rain))+geom_line()+xlab("Day")+ylab("Nu
 
 From the plot, we can see that there are fewer days in the start of the year and in the end of the year with an amount of rainfall over 1 mm. This is in January and December. The number of days steadily increases until the beggining of the summer which seems to be the period with the most days with an amount of rainfall over 1 mm. Then, the amount of days decreases during july and august before increasing during the autumn. This is somewhat consistent with the results we get from googling the amount of days with precipitation in Tokyo, where we can see that June and September are the months with the most days with rainfall and December and January are the month with the most. 
 
-## b)
+## b) Likelihod
+The likelihood of Equation \@ref(eq:1yt) is given by
+$$
+\begin{array}{rl}
+  L(\pi (\tau_t)) &= \prod_{i=1}^{T} \left(
+  \begin{array}{c}
+    n_t \\ y_t
+  \end{array} \right)
+  \pi(\tau_t)^{y_t}(1-\pi(\tau_t)^{n_t-y_t} 
+  \\
+  &\propto \prod_{i=1}^{T} \pi(\tau_t)^{y_t}(1-\pi(\tau_t)^{n_t-y_t} 
+  \\
+  &= \prod_{t=1}^{T} \left(\frac{\exp(\tau_t)}{1+\exp(\tau_t)}\right)^{y_t}
+  \left( 1- \frac{\exp(\tau_t)}{1+\exp(\tau_t)}\right)^{n_t - y_t},
+\end{array}
+$$
+where $y_t = 1,2,...,39$ and $n_t = 39$ for $t \neq 60$, and $y_t = 1,2,...,10$ and $n_t = 10$ for $t \neq 60$.
+
+## c) Posterior
+$$
+\begin{aligned}
+  P(\sigma^2 | \tau, y) &= \frac{P(\sigma^2_u, \tau, y)}{P(\tau, y)} 
+  \\
+  &\propto  P(y | \sigma^2_u,\tau) P(\sigma^2_u,\tau)
+  \\
+  &= P(y | \sigma^2_u,\tau) P(\tau|\sigma^2_u)P(\sigma^2_u) \\
+  &= \underbrace{\prod_{t=1}^{T} \left(\frac{\exp(\tau_t)}{1+\exp(\tau_t)}\right)^{y_t}
+  \left( 1- \frac{\exp(\tau_t)}{1+\exp(\tau_t)}\right)^{n_t - y_t}}_{\text{Constant wrt }\sigma^2}\cdot \\
+  &\quad \ \prod_{t=1}^{T} \frac{1}{\sigma_u} \exp\left\{ \frac{1}{2\sigma^2_u}(\tau_t - \tau_{t-1})^2 \right\} \cdot \frac{\beta^\alpha}{\Gamma(\alpha)} \left( \frac{1}{\sigma_u^2} \right)^{\alpha+1} exp\left\{ - \frac{\beta}{\sigma_u^2} \right\}
+  \\
+  &\propto \prod_{t=1}^{T} \frac{1}{\sigma_u} \exp\left\{ \frac{1}{2\sigma^2_u}(\tau_t - \tau_{t-1})^2 \right\} \cdot \frac{\beta^\alpha}{\Gamma(\alpha)} \left( \frac{1}{\sigma_u^2} \right)^{\alpha+1} exp\left\{ - \frac{\beta}{\sigma_u^2} \right\}
+  \\
+  &= \frac{1}{\sigma^{T-1}_u} exp\left\{ \frac{T-1}{2\sigma^2_u} \boldsymbol{\tau Q \tau} \right\} \cdot \frac{\beta^\alpha}{\Gamma(\alpha)} \left( \frac{1}{\sigma_u^2} \right)^{\alpha+1} exp\left\{ - \frac{\beta}{\sigma_u^2} \right\}
+\end{aligned}
+$$
+which should be the core of an inverse gamma.
 
