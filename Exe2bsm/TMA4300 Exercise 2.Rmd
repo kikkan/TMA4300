@@ -96,3 +96,45 @@ $$
 $$
 which should be the core of an inverse gamma.
 
+## d) Acceptance probability
+Let $\mathcal{I} \subseteq \{1,2,...,366\}$ be a set of time indices, and let $- \mathcal{I} = \{1,2,...,366\} \setminus \mathcal{I}$. Furthermore, let $\boldsymbol{\tau}'$ denote the proposed values for $\boldsymbol{\tau}$. Then, by using iterative conditioning, the acceptance probability is given by
+$$
+ \alpha(\boldsymbol{\tau}_ \mathcal{I}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2, \boldsymbol{y}) 
+ = \text{min} \left( 1, \frac{P( \boldsymbol{\tau}'_ \mathcal{I}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2, \boldsymbol{y})}
+ {P( \boldsymbol{\tau}_ \mathcal{I}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2, \boldsymbol{y})} 
+ \frac{Q( \boldsymbol{\tau}_\mathcal{I}|\boldsymbol{\tau}_{-\mathcal{I}}, \sigma_u^2, \boldsymbol{y})}
+ {Q(\boldsymbol{\tau}'_ \mathcal{I}|\boldsymbol{\tau}_{-\mathcal{I}}, \sigma_u^2, \boldsymbol{y})}
+ \right),
+$$
+where our prior proposal distribution is $Q(\boldsymbol{\tau}'_\mathcal{I}|\boldsymbol{\tau}_{-\mathcal{I}}, \sigma_u^2, \boldsymbol{y}) = P(\boldsymbol{\tau}'_\mathcal{I}|\boldsymbol{\tau}_{-\mathcal{I}}, \sigma_u^2)$. By considering
+$$
+\begin{aligned}
+  P( \boldsymbol{\tau}'_ \mathcal{I}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2, \boldsymbol{y}) &= \frac{P( \boldsymbol{\tau}'_ \mathcal{I}, \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2, \boldsymbol{y})}{P( \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2, \boldsymbol{y})} 
+  \\
+  &= \frac{P(\boldsymbol{y}| \boldsymbol{\tau}'_ \mathcal{I}, \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2)P(\boldsymbol{\tau}'_ \mathcal{I}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2)P(\boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2)}{P(\boldsymbol{y}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2) P(\boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2)}
+  \\
+  &= \frac{\overbrace{P(\boldsymbol{y}| \boldsymbol{\tau}'_ \mathcal{I}, \boldsymbol{\tau}_ {-\mathcal{I}})}^{\text{Conditionally independent}} P(\boldsymbol{\tau}'_ \mathcal{I}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2)}{P(\boldsymbol{y}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2)}
+  \\
+  &= \frac{P(\boldsymbol{y}_\mathcal{I}| \boldsymbol{\tau}'_ \mathcal{I})P(\boldsymbol{y}_\mathcal{-I}| \boldsymbol{\tau}_ \mathcal{-I}) P(\boldsymbol{\tau}'_ \mathcal{I}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2)}{P(\boldsymbol{y}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2)}
+\end{aligned}
+$$
+and equally
+$$
+  P( \boldsymbol{\tau}_ \mathcal{I}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2, \boldsymbol{y}) 
+  = 
+  \frac{P(\boldsymbol{y}_\mathcal{I}| \boldsymbol{\tau}_ \mathcal{I})P(\boldsymbol{y}_\mathcal{-I}| \boldsymbol{\tau}_ \mathcal{-I}) P(\boldsymbol{\tau}_ \mathcal{I}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2)}{P(\boldsymbol{y}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2)}
+$$
+the acceptance probability becomes
+$$
+\begin{aligned}
+  \alpha(\boldsymbol{\tau}_ \mathcal{I}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2, \boldsymbol{y}) &= \text{min} \left( 1, \frac{{P(\boldsymbol{y}_\mathcal{I}| \boldsymbol{\tau}'_ \mathcal{I})P(\boldsymbol{y}_\mathcal{-I}| \boldsymbol{\tau}_ \mathcal{-I}) P(\boldsymbol{\tau}'_ \mathcal{I}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2)}/{P(\boldsymbol{y}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2)}}
+  {{P(\boldsymbol{y}_\mathcal{I}| \boldsymbol{\tau}_ \mathcal{I})P(\boldsymbol{y}_\mathcal{-I}| \boldsymbol{\tau}_ \mathcal{-I}) P(\boldsymbol{\tau}_ \mathcal{I}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2)}/{P(\boldsymbol{y}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2)}}
+  \frac{P(\boldsymbol{\tau}_\mathcal{I}|\boldsymbol{\tau}_{-\mathcal{I}}, \sigma_u^2)}{P(\boldsymbol{\tau}'_\mathcal{I}|\boldsymbol{\tau}_{-\mathcal{I}}, \sigma_u^2)} 
+  \right)
+  \\
+  &= \text{min} \left( 1, \frac{P(\boldsymbol{y}_\mathcal{I}| \boldsymbol{\tau}'_ \mathcal{I})}{P(\boldsymbol{y}_\mathcal{I}| \boldsymbol{\tau}_ \mathcal{I})} 
+  \right)
+\end{aligned}
+$$
+
+
