@@ -18,7 +18,7 @@ acceptRatio = function(n, y, tauProp, tau){
 }
 
 
-mhRW = function(tau, sigma, yt, t, normVec=NA){
+mhRW = function(tau, sigma, yt, t, normVec, QaaInv, Qab){
   if (t==1){
     mu_ab = tau[2]
     sigma_aa = sigma
@@ -43,6 +43,8 @@ mhRW = function(tau, sigma, yt, t, normVec=NA){
 }
 
 
+
+
 mcmcRW = function(N, dt, M = 10, sigma0=0.1){
   # Changed for block
   # Allocate memory
@@ -58,26 +60,12 @@ mcmcRW = function(N, dt, M = 10, sigma0=0.1){
   # tau[1,] = runif(366, -100, 100) # init tau drawn from uniform distr.
   sigma[1] = sigma0
   
-  # Make Q matrices
-  Q=matrix(0, nrow = Ttot, ncol = Ttot)
-  diag(Q)=2
-  Q[c(1, length(Q))]=1
-  Q[abs(row(Q) - col(Q)) == 1] <- -1
+  # Make Q matrices (all inversed Qaa and Qab)
+  Qs = QpreComp(Ttot, M)
+  Qab = Qs$Qab
+  n.sets = Qs$n.sets
   
-  # Make sparse Q
-  Q <- bandSparse(Ttot, Ttot, #dimensions
-                  (-1):1, #band, diagonal is number 0
-                  list(rep(-1, Ttot-1), # Tridiag values
-                       rep(2, Ttot), 
-                       rep(-1, Ttot-1)))
-  Q[1,1] = 1 
-  Q[t,t] = 1
   
-  Qaa1 = Q[1:M,1:M]
-  Qaa2 = Q[2:(M+1), 2:(M+1)]
-  Qaa3 = Q[(Ttot-M):Ttot, (Ttot-M):Ttot]
-  
-  # setup all indexes to not have if statement 50000
   
   
   # Run mcmc for N iterations
@@ -85,12 +73,15 @@ mcmcRW = function(N, dt, M = 10, sigma0=0.1){
   for (i in 2:N){
     tau_i = tau[i-1,]
     sigma_i = sigma[i-1]
-    for (t in 1:366){
-      # rtemp= mhRW(tau_i, sigma_i, dt$n.rain[t], t)
+    "Add first step using Qaa1"
+    rtemp= mhRW(tau_i, sqrt(sigma_i), dt$n.rain[t], t, normVec[t])
+    for (t in 1:n.sets){
+      "Loop through mid steps using Qaa2"
       rtemp= mhRW(tau_i, sqrt(sigma_i), dt$n.rain[t], t, normVec[t])
       tau[i,t] = rtemp$tau
       accepted = accepted + rtemp$accepted
     }
+    "Add last step using Qaa3"
     normVec = normMat[i,]
     # Squared diff. of tau vec.
     tQt = sum((tau[i,-366] - tau[i,-1])^2) # this sim tau vals.
@@ -108,3 +99,46 @@ mcmcRW = function(N, dt, M = 10, sigma0=0.1){
 }
 
 # 1f) fncs ----
+QpreComp = function(Ttot, M){
+  # Precomputes all Q matrices needed for simulation
+  # Make sparse Q and Qaa1, Qaa2
+  Q <- bandSparse(t, t, #dimensions
+                  (-1):1, #band, diagonal is number 0
+                  list(rep(-1, Ttot-1), # Tridiag values
+                       rep(2, Ttot), 
+                       rep(-1, Ttot-1)))
+  Q[1,1] = 1 
+  Q[t,t] = 1
+  
+  Qaa1 = Q[1:M,1:M]
+  Qaa2 = Q[2:(M+1), 2:(M+1)]
+  
+  QabList = list(Qab1 = Q[1:M, -(1:M)]) # Qab to be used with Q1inv
+  
+  # Make intervals and Q3
+  n.sets = floor(Ttot/M)
+  mod = Ttot %% M
+  intervals = matrix(1:(Ttot - mod), ncol = M, byrow=T)
+  if (mod){
+    nTot = n.sets + 1
+    intervalsRes = (Ttot-mod+1):Ttot
+    Qaa3 = Q[intervalsRes, intervalsRes]
+    for (i in 2:n.sets){
+      QabList[i] = Q[intervals[i,], -intervals[i,]]
+    }
+    QabList[n.sets+1] = Q[intervalsRes, -intervalsRes]
+  } else {
+    nTot = n.sets
+    intervalsRes = NA
+    Qaa3 = Q[(Ttot-M):Ttot, (Ttot-M):Ttot]
+    for (i in 2:n.sets){
+      QabList[i] = Q[intervals[i,], -intervals[i,]]
+    }
+  }
+  
+  names(QabList) = sprintf("Qab%d", 1:(n.sets + 1))
+  
+  return(list(Qaa1inv = solve(Q1), Qaa2inv = solve(Q2), Qaa3inv = solve(Q3),
+              Qab = QabList,
+              n.sets = nTot))
+}
