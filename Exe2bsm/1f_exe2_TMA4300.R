@@ -7,51 +7,35 @@ link = function(tau){
   return(exp(tau)/(1+exp(tau)))
 }
 
-logbin = function(n, y, tau){
-  # Remake and use this
-  return(y*log(1+exp(-tau)) - (n-y)*log(1+exp(tau)))
-}
 
 acceptRatio = function(n, y, tauProp, tau){
-  # Confirmed faster. N=1000: 4.7 vs 3.81
   return(exp(y*(tauProp - tau) + n*log((1+exp(tau))/(1+exp(tauProp)))))
 }
 
 
-mhRW = function(tau, sigma, yt, t, normVec, QaaInv, Qab){
-  if (t==1){
-    mu_ab = tau[2]
-    sigma_aa = sigma
+mhRW = function(tau, y, n, tvec, Sigma, QmultI){
+  mu_ab = QmultI %*% matrix(tau[-tvec], ncol=1)
+  prop_tau = mvrnorm(n=1, mu_ab[,1], Sigma=Sigma)
+  ratio = 0
+  for (t in 1:length(n)){
+    ratio = ratio + acceptRatio(n[t], y[t], prop_tau[t], tau[tvec[t]])
   }
-  else if (t==366){
-    mu_ab = tau[365]
-    sigma_aa = sigma
-  }
-  else{
-    mu_ab = 1/2 * (tau[t-1] + tau[t+1])
-    sigma_aa = sigma/2
-  }
-  # prop_tau = rnorm(1,mean=mu_ab, sd=sqrt(sigma_aa))
-  # prop_tau = normVec[t]*sigma + mu_ab
-  prop_tau = normVec*sigma + mu_ab
-  n = ifelse(t==60,10,39)
-  ratio = acceptRatio(n, yt, prop_tau, tau[t])
   if (runif(1) < min(c(1,ratio))){
     return(list(tau=prop_tau, accepted=1))
   }
-  else{return(list(tau=tau[t], accepted=0))}
+  else{return(list(tau=tau[tvec], accepted=0))}
 }
 
 
 
 
-mcmcRW = function(N, dt, M = 10, sigma0=0.1){
+mcmcBlock = function(N, dt, M = 10, sigma0=0.1){
   # Changed for block
   # Allocate memory
   Ttot = 366
-  tau = matrix(NA, nrow=N, ncol = Ttot)
+  tau = matrix(NA, nrow=N, ncol = Ttot) 
   sigma = numeric(length = N)
-  tau_i = numeric(length = Ttot)
+  tauOld = numeric(length = Ttot)
   normMat = matrix(rep(rnorm(Ttot), N), nrow = N, ncol=Ttot)
   normVec = normMat[1,]
   
@@ -61,34 +45,40 @@ mcmcRW = function(N, dt, M = 10, sigma0=0.1){
   sigma[1] = sigma0
   
   # Make Q matrices (all inversed Qaa and Qab)
-  Qs = QpreComp(Ttot, M)
-  Qab = Qs$Qab
+  Qs = Qprecomp(Ttot, M)
+  Qmult = Qs$Qmult # Precomp. of - inv Qaa times Qab
   n.sets = Qs$n.sets
-  
-  
-  
+  I = Qs$I
+  Ires = Qs$Ires
   
   # Run mcmc for N iterations
   accepted = 0
   for (i in 2:N){
-    tau_i = tau[i-1,]
+    tauOld = tau[i-1,]
     sigma_i = sigma[i-1]
-    "Add first step using Qaa1"
-    rtemp= mhRW(tau_i, sqrt(sigma_i), dt$n.rain[t], t, normVec[t])
-    for (t in 1:n.sets){
-      "Loop through mid steps using Qaa2"
-      rtemp= mhRW(tau_i, sqrt(sigma_i), dt$n.rain[t], t, normVec[t])
-      tau[i,t] = rtemp$tau
+    # First step using Qaa1inv
+    # browser()
+    Sigma2 = sigma_i*Qs$Qaa2inv # covar mat for 1<t<366
+    rtemp= mhRW(tauOld, y=dt$n.rain[I[1,]], n=dt$n.years[I[1,]], 
+                tvec=I[1,], sigma_i*Qs$Qaa1inv, Qmult[[1]])
+    tau[i, I[1,]] = rtemp$tau
+    accepted = accepted + rtemp$accepted
+    
+    for (t in 2:(n.sets-1)){
+      rtemp= mhRW(tau=tauOld, y=dt$n.rain[I[t,]], n=dt$n.years[I[t,]], 
+                  tvec=I[t,], Sigma=Sigma2, QmultI=Qmult[[t]])
+      tau[i, I[t,]] = rtemp$tau
       accepted = accepted + rtemp$accepted
     }
-    "Add last step using Qaa3"
-    normVec = normMat[i,]
-    # Squared diff. of tau vec.
-    tQt = sum((tau[i,-366] - tau[i,-1])^2) # this sim tau vals.
-    # tQt = sum((tau[i-1,-366] - tau[i-2,-1])^2) # prev sim tau vals.
     
-    # Gibbs step (Draw from IG)
-    sigma[i] = 1/rgamma(1, 2 + (366-1)/2, 0.05 + 0.5*tQt) # Gibbs inline
+    rtemp= mhRW(tauOld, dt$n.rain[Ires], dt$n.years[Ires], 
+                Ires, sigma_i*Qs$Qaa3inv, Qmult[[n.sets]])
+    tau[i, Ires] = rtemp$tau
+    accepted = accepted + rtemp$accepted
+    
+    # tQt = sum((tau[i,-366] - tau[i,-1])^2) 
+    tQt = sum((diff(tau[i,]))^2) 
+    sigma[i] = 1/rgamma(1, shape=2 + (366-1)/2, rate=0.05 + 0.5*tQt) # Gibbs inline
     
     if (i%%(N/10)==0){
       print(i/N*100)
@@ -98,47 +88,112 @@ mcmcRW = function(N, dt, M = 10, sigma0=0.1){
   return(list(tau=tau, sigma=sigma))
 }
 
+
+
 # 1f) fncs ----
-QpreComp = function(Ttot, M){
+Qprecomp = function(Ttot, M){
   # Precomputes all Q matrices needed for simulation
-  # Make sparse Q and Qaa1, Qaa2
-  Q <- bandSparse(t, t, #dimensions
+  ## Make I and Q3
+  n.sets = floor(Ttot/M)
+  mod = Ttot %% M
+  I = matrix(1:(Ttot - mod), ncol = M, byrow=T)
+  ## Make sparse Q and Qaa and Qab
+  Q <- bandSparse(Ttot, Ttot, #dimensions
                   (-1):1, #band, diagonal is number 0
                   list(rep(-1, Ttot-1), # Tridiag values
                        rep(2, Ttot), 
                        rep(-1, Ttot-1)))
   Q[1,1] = 1 
-  Q[t,t] = 1
+  Q[Ttot,Ttot] = 1
   
   Qaa1 = Q[1:M,1:M]
   Qaa2 = Q[2:(M+1), 2:(M+1)]
   
-  QabList = list(Qab1 = Q[1:M, -(1:M)]) # Qab to be used with Q1inv
+  Qaa1inv = solve(Qaa1)
+  Qaa2inv = solve(Qaa2)
   
-  # Make intervals and Q3
-  n.sets = floor(Ttot/M)
-  mod = Ttot %% M
-  intervals = matrix(1:(Ttot - mod), ncol = M, byrow=T)
+  Qab = list(Qab1 = Q[1:M, -(1:M)]) # Qab to be used with Q1inv
+  
+  Qmult = list(QaaInvQab1 = -Qaa1inv %*% Qab$Qab1)
+  
+  
   if (mod){
     nTot = n.sets + 1
-    intervalsRes = (Ttot-mod+1):Ttot
-    Qaa3 = Q[intervalsRes, intervalsRes]
+    Ires = (Ttot-mod+1):Ttot
+    Qaa3 = Q[Ires, Ires]
+    Qaa3inv = solve(Qaa3)
     for (i in 2:n.sets){
-      QabList[i] = Q[intervals[i,], -intervals[i,]]
+      # Qab[i] = Q[I[i,], -I[i,]]
+      Qab = append(Qab,Q[I[i,], -I[i,]])
+      # Qmult[i] = -Qaa2inv %*% Qab[[i]]
+      Qmult = append(Qmult, -Qaa2inv %*% Qab[[i]])
     }
-    QabList[n.sets+1] = Q[intervalsRes, -intervalsRes]
+    # Qab[n.sets+1] = Q[Ires, -Ires]
+    Qab = append(Qab, Q[Ires, -Ires])
+    # Qmult[n.sets + 1] = -Qaa3inv %*% Qab[[n.sets + 1]]
+    Qmult = append(Qmult, -Qaa3inv %*% Qab[[n.sets + 1]])
   } else {
     nTot = n.sets
-    intervalsRes = NA
     Qaa3 = Q[(Ttot-M):Ttot, (Ttot-M):Ttot]
     for (i in 2:n.sets){
-      QabList[i] = Q[intervals[i,], -intervals[i,]]
+      # Qab[i] = Q[I[i,], -I[i,]]
+      Qab = append(Qab,Q[I[i,], -I[i,]])
+      # Qmult[i] = -Qaa2inv %*% Qab[[i]]
+      Qmult = append(Qmult, -Qaa2inv %*% Qab[[i]])
     }
+    Ires = Qab[n.sets]
   }
   
-  names(QabList) = sprintf("Qab%d", 1:(n.sets + 1))
+  names(Qab) = sprintf("Qab%d", 1:(n.sets + 1))
+  names(Qmult) = sprintf("Qmult%d", 1:(n.sets + 1))
   
-  return(list(Qaa1inv = solve(Q1), Qaa2inv = solve(Q2), Qaa3inv = solve(Q3),
-              Qab = QabList,
-              n.sets = nTot))
+  return(list(Qaa1inv = solve(Qaa1), Qaa2inv = solve(Qaa2), Qaa3inv = solve(Qaa3),
+              Qab = Qab, Qmult = Qmult,
+              n.sets = nTot, I = I, Ires = Ires))
 }
+
+
+if (F){
+  load('./rain.rda')
+  setwd('./Exe2bsm/')
+  options(error = recover)
+  options(error = NULL)
+}
+
+M = 10
+N = 1000
+
+set.seed(321)
+# Run ----
+ptm = proc.time()
+results = mcmcBlock(N, rain, M)
+proc.time() - ptm
+
+sum(is.na(results$tau))
+sum(is.na(results$sigma))
+
+par(mfrow=c(3,3))
+if (F){
+  p1 = link(results$tau[,1])
+  p201 = link(results$tau[,201])
+  p366 = link(results$tau[,366])
+  plot(p1, type="l")
+  plot(p201, type="l")
+  plot(p366, type="l")
+  
+  acf(results$tau[,1])
+  acf(results$tau[,201])
+  acf(results$tau[,365])
+  
+  hist(p1, nclass=100, prob=T)
+  hist(p201, nclass=100, prob=T)
+  hist(p366, nclass=100, prob=T)
+  
+  par(mfrow=c(1,1))
+  plot(results$sigma, type="l")
+}
+
+par(mfrow=c(3,1))
+plot(link(results$tau[1,]), type = "l")
+plot(link(results$tau[N/2,]), type = "l")
+plot(link(results$tau[N,]), type = "l")
