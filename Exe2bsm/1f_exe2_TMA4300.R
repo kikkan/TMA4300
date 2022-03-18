@@ -101,8 +101,15 @@ Qprecomp = function(Ttot, M){
   Q <- bandSparse(Ttot, Ttot, #dimensions
                   (-1):1, #band, diagonal is number 0
                   list(rep(-1, Ttot-1), # Tridiag values
-                       rep(2, Ttot), 
+                       rep(2, Ttot),
                        rep(-1, Ttot-1)))
+  
+  # Make non sparse Q
+  # Q=matrix(0, nrow = 366, ncol = 366)
+  # diag(Q)=2
+  # Q[c(1, length(Q))]=1
+  # Q[abs(row(Q) - col(Q)) == 1] <- -1
+  
   Q[1,1] = 1 
   Q[Ttot,Ttot] = 1
   
@@ -126,22 +133,29 @@ Qprecomp = function(Ttot, M){
       # Qab[i] = Q[I[i,], -I[i,]]
       Qab = append(Qab,Q[I[i,], -I[i,]])
       # Qmult[i] = -Qaa2inv %*% Qab[[i]]
-      Qmult = append(Qmult, -Qaa2inv %*% Qab[[i]])
+      Qmult = append(Qmult, -Qaa2inv %*% Qab[[i]]) # sparse
+      # Qmult = append(Qmult, -Qaa2inv %*% Qab[i]) # not sparse
     }
     # Qab[n.sets+1] = Q[Ires, -Ires]
     Qab = append(Qab, Q[Ires, -Ires])
     # Qmult[n.sets + 1] = -Qaa3inv %*% Qab[[n.sets + 1]]
-    Qmult = append(Qmult, -Qaa3inv %*% Qab[[n.sets + 1]])
+    Qmult = append(Qmult, -Qaa3inv %*% Qab[[n.sets + 1]]) # sparse
+    # Qmult = append(Qmult, -Qaa3inv %*% Qab[n.sets + 1])
   } else {
     nTot = n.sets
     Qaa3 = Q[(Ttot-M):Ttot, (Ttot-M):Ttot]
-    for (i in 2:n.sets){
+    Qaa3inv = solve(Qaa3)
+    for (i in 2:(n.sets-1)){
       # Qab[i] = Q[I[i,], -I[i,]]
       Qab = append(Qab,Q[I[i,], -I[i,]])
       # Qmult[i] = -Qaa2inv %*% Qab[[i]]
-      Qmult = append(Qmult, -Qaa2inv %*% Qab[[i]])
+      Qmult = append(Qmult, -Qaa2inv %*% Qab[[i]]) # sparse
+      # Qmult = append(Qmult, -Qaa2inv %*% Qab[i]) # not sparse
     }
-    Ires = Qab[n.sets]
+    Qab = append(Qab,Q[I[nTot,], -I[nTot,]])
+    Ires = Qab[nTot]
+    Qmult = append(Qmult, -Qaa3inv %*% Qab[[nTot]]) # sparse
+    # Qmult = append(Qmult, -Qaa3inv %*% Qab[nTot]) # not sparse
   }
   
   names(Qab) = sprintf("Qab%d", 1:(n.sets + 1))

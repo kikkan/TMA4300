@@ -49,30 +49,28 @@ The Tokyo rainfall dataset contain the amount of rainfall for each of the $366$ 
 \end{equation}
 Here, $\pi(\tau_t)$ is the probability of rainfall exceeding $1$mm and $\tau_t$ is the logit probability of exceedence. For this project we assume conditional independence among the $y_t|\tau_t \ \forall t=1,2,...,366$.
 
-We will investigate the accuracy and computational speed of a random walk implementation containing Metropolis-Hasting and Gibbs steps for specific parameters compared to the built in method `INLA` of R. 
+We will apply a Bayesian hierarchical model to the dataset, using a random walk of order 1 (RW1) to model the trend. For the model we will implement a Markov chain Monte Carlo (MCMC) sampler for the posterior using Metropolis-Hastings (MH) and Gibbs steps for specific parameters. Then we will investigate the accuracy and computational speed of the implementation compared to the built in method `INLA` in R. 
 
 # Problem 1
-## a)
-In Figure \@ref(fig:displayData) we see the the number of times the rainfall has exceeded $1$mm.
+## a) Display
+In Figure \@ref(fig:displayData) we see the number of times the rainfall has exceeded $1$mm. There seem to be fewer days in the start of the year and in the end of the year with an amount of rainfall exceeding 1 mm. This is in January and December. The number of days steadily increases until the begining of the summer which seems to be the period with the most days with an amount of rainfall over 1 mm. Then, the amount of days decreases during july and august before increasing during the autumn. There also seem to be fluctuations on a daily basis from the just mentiod trend in the data. The red dot is the observation for February 29.
 
 ```{r displayData, fig.cap="The Tokyo Rainfall dataset"}
 load("./rain.rda")
 ##Plotting the data
-head(rain)
 ggplot(data=rain, mapping=aes(x=day, y=n.rain)) + 
   geom_line() + 
   xlab("Day") + 
-  ylab("Number of days with more than 1mm rain")
+  ylab("Number of days with more than 1mm rain") + 
+  geom_point(aes(x=day[60], y=n.rain[60]), colour="red")
 ```
-We start by plotting the amount of rainfall against each day. 
 
-From the plot, we can see that there are fewer days in the start of the year and in the end of the year with an amount of rainfall over 1 mm. This is in January and December. The number of days steadily increases until the beggining of the summer which seems to be the period with the most days with an amount of rainfall over 1 mm. Then, the amount of days decreases during july and august before increasing during the autumn. This is somewhat consistent with the results we get from googling the amount of days with precipitation in Tokyo, where we can see that June and September are the months with the most days with rainfall and December and January are the month with the most. 
 
 ## b) Likelihood
 The likelihood of Equation \@ref(eq:1response) is given by
 $$
 \begin{array}{rl}
-  L(\pi (\tau_t)) &= \prod_{i=1}^{T} \left(
+  L(\pi (\boldsymbol{\tau})) &= \prod_{i=1}^{T} \left(
   \begin{array}{c}
     n_t \\ y_t
   \end{array} \right)
@@ -84,33 +82,47 @@ $$
   \left( 1- \frac{\exp(\tau_t)}{1+\exp(\tau_t)}\right)^{n_t - y_t},
 \end{array}
 $$
-where $y_t = 1,2,...,39$ and $n_t = 39$ for $t \neq 60$, and $y_t = 1,2,...,10$ and $n_t = 10$ for $t \neq 60$.
+where $\boldsymbol{\tau} = (\tau_1,..., \tau_T)$, $y_t = 1,2,...,39$ and $n_t = 39$ for $t \neq 60$, and $y_t = 1,2,...,10$ and $n_t = 10$ for $t \neq 60$.
 
 ## c) Posterior
+As briefly mentioned in the introduction we need the posterior $P(\sigma^2 | \tau, y)$ for the Gibbs step in our implementation, given by
 $$
 \begin{aligned}
-  P(\sigma^2 | \tau, y) &= \frac{P(\sigma^2_u, \tau, y)}{P(\tau, y)} 
+  P(\sigma^2 | \boldsymbol{\tau}, \boldsymbol{y}) &= \frac{P(\sigma^2_u, \boldsymbol{\tau}, \boldsymbol{y})}{P(\boldsymbol{\tau}, \boldsymbol{y})}
   \\
-  &\propto  P(y | \sigma^2_u,\tau) P(\sigma^2_u,\tau)
+  &\propto  P(\boldsymbol{y} | \sigma^2_u,\boldsymbol{\tau}) P(\sigma^2_u,\boldsymbol{\tau})
   \\
-  &= P(y | \sigma^2_u,\tau) P(\tau|\sigma^2_u)P(\sigma^2_u) \\
-  &= \underbrace{\prod_{t=1}^{T} \left(\frac{\exp(\tau_t)}{1+\exp(\tau_t)}\right)^{y_t}
-  \left( 1- \frac{\exp(\tau_t)}{1+\exp(\tau_t)}\right)^{n_t - y_t}}_{\text{Constant w.r.t. }\sigma^2}\cdot \\
-  &\quad \ \prod_{t=1}^{T} \frac{1}{\sigma_u} \exp\left\{ \frac{1}{2\sigma^2_u}(\tau_t - \tau_{t-1})^2 \right\} \cdot \frac{\beta^\alpha}{\Gamma(\alpha)} \left( \frac{1}{\sigma_u^2} \right)^{\alpha+1} exp\left\{ - \frac{\beta}{\sigma_u^2} \right\}
-  \\
-  &\propto \prod_{t=1}^{T} \frac{1}{\sigma_u} \exp\left\{ \frac{1}{2\sigma^2_u}(\tau_t - \tau_{t-1})^2 \right\} \cdot \frac{\beta^\alpha}{\Gamma(\alpha)} \left( \frac{1}{\sigma_u^2} \right)^{\alpha+1} exp\left\{ - \frac{\beta}{\sigma_u^2} \right\}
-  \\
-  &= \frac{1}{\sigma^{T-1}_u} exp\left\{ \frac{1}{2\sigma^2_u} \boldsymbol{\tau Q \tau} \right\} \cdot \frac{\beta^\alpha}{\Gamma(\alpha)} \left( \frac{1}{\sigma_u^2} \right)^{\alpha+1} exp\left\{ - \frac{\beta}{\sigma_u^2} \right\}
-  \\
-  &\propto \left( \frac{1}{\sigma_u^2} \right)^{\alpha+\frac{T-1}{2} + 1} 
-  exp\left\{ \frac{1}{\sigma^2_u} \left( \frac12 \boldsymbol{\tau Q \tau} - \beta \right)  \right\}
+  &= P(\boldsymbol{y} | \sigma^2_u,\boldsymbol{\tau}) P(\tau|\sigma^2_u)P(\sigma^2_u),
 \end{aligned}
 $$
-which we recognize as the core of an inverse gamma 
-$\mathrm{IG}(\alpha^*, \beta^*) = \mathrm{IG}(\alpha + \frac12(T-1), \beta + \frac12 \boldsymbol{\tau Q \tau})$
+where $\boldsymbol{y} = (y_1,...,y_T)^T$, $\boldsymbol{\tau} = (\tau_1,..., \tau_T)$ and $P(\boldsymbol{y} | \sigma^2_u,\boldsymbol{\tau}) = L(\pi( \boldsymbol{\tau}))$. Based on model assumptions mentioned in the introduction, we have $\tau_t \sim \tau_{t-1}$ for $u_t \stackrel{iid}{\sim} \mathcal{N}(0, \sigma_u^2)$ so that
+$$
+p(\boldsymbol{\tau} | \sigma_u^2) = \prod_{t=2}^{T} \frac{1}{\sigma_u} \exp\left\{ -\frac{1}{2\sigma^2_u}(\tau_t - \tau_{t-1})^2 \right\}.
+$$
+We place an inverse gamma prior (IG) on $\sigma_u^2$ given by
+$$
+p(\sigma_u^2) = \frac{\beta^\alpha}{\Gamma(\alpha)} \left( \frac{1}{\sigma_u^2} \right)^{\alpha+1} exp\left\{ - \frac{\beta}{\sigma_u^2} \right\}.
+$$
+Then, the posterior is
+
+$$
+\begin{aligned}
+  P(\sigma^2 | \boldsymbol{\tau}, \boldsymbol{y}) &= \underbrace{\prod_{t=1}^{T} \left(\frac{\exp(\tau_t)}{1+\exp(\tau_t)}\right)^{y_t}
+  \left( 1- \frac{\exp(\tau_t)}{1+\exp(\tau_t)}\right)^{n_t - y_t}}_{\text{Constant w.r.t. }\sigma^2}\cdot \\
+  &\quad \ \prod_{t=1}^{T} \frac{1}{\sigma_u} \exp\left\{ -\frac{1}{2\sigma^2_u}(\tau_t - \tau_{t-1})^2 \right\} \cdot \frac{\beta^\alpha}{\Gamma(\alpha)} \left( \frac{1}{\sigma_u^2} \right)^{\alpha+1} exp\left\{ - \frac{\beta}{\sigma_u^2} \right\}
+  \\
+  &\propto \prod_{t=1}^{T} \frac{1}{\sigma_u} \exp\left\{ -\frac{1}{2\sigma^2_u}(\tau_t - \tau_{t-1})^2 \right\} \cdot \frac{\beta^\alpha}{\Gamma(\alpha)} \left( \frac{1}{\sigma_u^2} \right)^{\alpha+1} exp\left\{ - \frac{\beta}{\sigma_u^2} \right\}
+  \\
+  &= \frac{1}{\sigma^{T-1}_u} exp\left\{ -\frac{1}{2\sigma^2_u} \boldsymbol{\tau Q \tau} \right\} \cdot \frac{\beta^\alpha}{\Gamma(\alpha)} \left( \frac{1}{\sigma_u^2} \right)^{\alpha+1} exp\left\{ - \frac{\beta}{\sigma_u^2} \right\}
+  \\
+  &\propto \left( \frac{1}{\sigma_u^2} \right)^{\alpha+\frac{T-1}{2} + 1} 
+  exp\left\{ -\frac{1}{\sigma^2_u} \left( \frac12 \boldsymbol{\tau Q \tau} + \beta \right)  \right\}
+\end{aligned}
+$$
+for a tridiagonal matrix $\boldsymbol{Q}$ with diagonal elements equal to $2$ except first and last element which are $1$, and the offdiagonal elements equal to $-1$. We recognize the posterior as the core of an inverse gamma $\mathrm{IG}(\alpha^*, \beta^*)$ with shape $\alpha^* = \alpha + \frac12(T-1)$ and scale $\beta^* = \beta + \frac12 \boldsymbol{\tau Q \tau}$.
 
 ## d) Acceptance probability
-Let $\mathcal{I} \subseteq \{1,2,...,366\}$ be a set of time indices, and let $- \mathcal{I} = \{1,2,...,366\} \setminus \mathcal{I}$. Furthermore, let $\boldsymbol{\tau}'$ denote the proposed values for $\boldsymbol{\tau}$. Then, by using iterative conditioning, the acceptance probability is given by
+Let $\mathcal{I} \subseteq \{1,2,...,366\}$ be a set of time indices, and let $- \mathcal{I} = \{1,2,...,366\} \setminus \mathcal{I}$. Furthermore, let $\boldsymbol{\tau}'$ denote the proposed values for $\boldsymbol{\tau}$. The MH step needs an acceptance probability denoted $\alpha$ for the proposed values $\boldsymbol{\tau}'_\mathcal{I}$. By using iterative conditioning we can write the acceptance probability as
 $$
  \alpha(\boldsymbol{\tau}_ \mathcal{I}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2, \boldsymbol{y}) 
  = \text{min} \left( 1, \frac{P( \boldsymbol{\tau}'_ \mathcal{I}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2, \boldsymbol{y})}
@@ -137,7 +149,7 @@ $$
   = 
   \frac{P(\boldsymbol{y}_\mathcal{I}| \boldsymbol{\tau}_ \mathcal{I})P(\boldsymbol{y}_\mathcal{-I}| \boldsymbol{\tau}_ \mathcal{-I}) P(\boldsymbol{\tau}_ \mathcal{I}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2)}{P(\boldsymbol{y}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2)}
 $$
-the acceptance probability becomes
+we can rewrite the acceptance probability as
 $$
 \begin{aligned}
   \alpha(\boldsymbol{\tau}_ \mathcal{I}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2, \boldsymbol{y}) &= \text{min} \left( 1, \frac{{P(\boldsymbol{y}_\mathcal{I}| \boldsymbol{\tau}'_ \mathcal{I})P(\boldsymbol{y}_\mathcal{-I}| \boldsymbol{\tau}_ \mathcal{-I}) P(\boldsymbol{\tau}'_ \mathcal{I}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2)}/{P(\boldsymbol{y}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2)}}
@@ -146,14 +158,17 @@ $$
   \right)
   \\
   &= \text{min} \left( 1, \frac{P(\boldsymbol{y}_\mathcal{I}| \boldsymbol{\tau}'_ \mathcal{I})}{P(\boldsymbol{y}_\mathcal{I}| \boldsymbol{\tau}_ \mathcal{I})} 
-  \right)
+  \right),
 \end{aligned}
 $$
+which is the minimum of 1 and the ratio of likelihoods conditioned on the proposed values and the old values.
 
 
 ## e) Implementation
+In this section we implement an MCMC sampler for the posterior $P(\boldsymbol{\pi}, \sigma_u^2| \boldsymbol{y})$. For the conditional prior, $P(\tau_t | \boldsymbol{\tau}_{-t}, \sigma_u)$, we use an MH steps, and for $\sigma_u$ we use Gibbs steps. We assume $\alpha = 2$ and $\beta = 0.05$ for the response given in Equation \@ref(eq:1response), and the initial value for $\sigma_u^2=0.1$. Initial values for $\tau$ are drawn from a standard normal distribution and the number of iterations is $N=50'000$.
 ```{r 1Functions, options}
 link = function(tau){
+  # Expit link
   return(exp(tau)/(1+exp(tau)))
 }
 
@@ -195,19 +210,20 @@ mhRW = function(tau, sigma, yt, t, normVec=NA){
 
 mcmcIndivid = function(N, dt, sigma0=0.1){
   # Allocate memory
-  tau = matrix(NA, nrow=N, ncol = 366)
+  Ttot = 366
+  tau = matrix(NA, nrow=N, ncol = Ttot)
   sigma = numeric(length = N)
-  tau_i = numeric(length = 366)
-  normMat = matrix(rep(rnorm(366), N), nrow = N, ncol=366)
+  tau_i = numeric(length = Ttot)
+  normMat = matrix(rep(rnorm(Ttot), N), nrow = N, ncol=Ttot)
   normVec = normMat[1,]
   
   # Find init vals
-  tau[1,] = rnorm(366) # init tau drawn from normal distr.
+  tau[1,] = rnorm(Ttot) # init tau drawn from normal distr.
   # tau[1,] = runif(366, -100, 100) # init tau drawn from uniform distr.
   sigma[1] = sigma0
   
   # Make Q matrix
-  Q=matrix(0, nrow = 366, ncol = 366)
+  Q=matrix(0, nrow = Ttot, ncol = Ttot)
   diag(Q)=2
   Q[c(1, length(Q))]=1
   Q[abs(row(Q) - col(Q)) == 1] <- -1
@@ -217,7 +233,7 @@ mcmcIndivid = function(N, dt, sigma0=0.1){
   for (i in 2:N){
     tau_i = tau[i-1,]
     sigma_i = sigma[i-1]
-    for (t in 1:366){
+    for (t in 1:Ttot){
       # rtemp= mhRW(tau_i, sigma_i, dt$n.rain[t], t)
       rtemp= mhRW(tau_i, sqrt(sigma_i), dt$n.rain[t], t, normVec[t])
       tau[i,t] = rtemp$tau
@@ -225,18 +241,18 @@ mcmcIndivid = function(N, dt, sigma0=0.1){
     }
     normVec = normMat[i,]
     # Squared diff. of tau vec.
-    tQt = sum((tau[i,-366] - tau[i,-1])^2) # this sim tau vals.
+    tQt = sum((tau[i,-Ttot] - tau[i,-1])^2) # this sim tau vals.
     # tQt = sum((tau[i-1,-366] - tau[i-2,-1])^2) # prev sim tau vals.
     
     # Gibbs step (Draw from IG)
-    sigma[i] = 1/rgamma(1, 2 + (366-1)/2, 0.05 + 0.5*tQt) # Gibbs inline
+    sigma[i] = 1/rgamma(1, 2 + (Ttot-1)/2, 0.05 + 0.5*tQt) # Gibbs inline
 
-    if (i%%(N/10)==0){
-      print(i/N*100)
-      print(accepted/(i*366))
-    }
+    # if (i%%(N/10)==0){
+    #   print(i/N*100)
+    #   print(accepted/(i*366))
+    # }
   }
-  return(list(tau=tau, sigma=sigma))
+  return(list(tau=tau, sigma=sigma, accProb = accepted/(N*Ttot)))
 }
 ```
 
@@ -245,21 +261,20 @@ set.seed(321)
 N = 50000
 ptm = proc.time()
 results = mcmcIndivid(N, rain)
-proc.time() - ptm
-# sum(is.na(results$tau))
-# sum(is.na(results$sigma))
+time = proc.time() - ptm
 ```
 
-```{r 1eDisplay, fig.width=7, fig.height=8, out.width="80%"}
+```{r 1eDisplay, fig.width=7, fig.height=8, out.width="80%", fig.cap="Traceplot, autocorrelation and histogram plots for $\\pi(\\tau_1), \\pi(\\tau_{201})$ and $\\pi(\\tau_{366})$ from top to bottom."}
 CImean = function(p, col="cyan3"){
   c(mean=mean(p), quantile(p, probs = c(0.025,0.975)))
 }
 
-plotTAH = function(p, hcol = "cyan3"){
+plotTAH = function(p, hcol = "cyan3", xlab = "", ylab = ""){
   # Plots trace, autocorr and hist of probs
-  plot(p, type="l")
-  acf(p)
-  hist(p, nclass=100, prob=T)
+  plot(p, type="l", xlab = "Iterations", ylab="Probability")
+  abline(h=mean(p), col="red")
+  acf(p, main="")
+  hist(p, nclass=40, prob=T, main="", xlab="Probability")
   abline(v = quantile(p, probs = 0.025), col=hcol)
   abline(v = quantile(p, probs = 0.975), col=hcol)
 }
@@ -269,23 +284,25 @@ p201 = link(results$tau[,201])
 p366 = link(results$tau[,366])
 
 par(mfrow=c(3,3))
-
 plotTAH(p1)
 plotTAH(p201)
 plotTAH(p366)
+```
+The vertical red line in the trace plots to the left in Figure \@ref(fig:1eDisplay) show the mean of $\pi(\tau_t)$ over all $50'000$ iterations, for $t = 1, 201, 366$. The horizontal blue lines in the histogram plot show the $95\%$ credible intervals for $\pi(\tau_t)$. The traceplot bares resemblance to that of a random walk for all $\tau_t$. We notice an exponential decrease in autocorrelation and the histogram show that $\tau_{201}$ seem normally distributed and $\tau_1$ and $\tau_{366}$ has a slight right skew.
+```{r 1eSigmaRes, fig.width=5, fig.height=8, out.width="80%"}
+par(mfrow=c(3,1))
+yl = expression(sigma_u^2)
+plot(results$sigma, type="l", ylab=yl)
+acf(results$sigma)
+hist(results$sigma, nclass=100, prob=T)
+```
 
+```{r makeTitle, options}
 ciAndMean = rbind(CImean(p1[1:N]),
                   CImean(p201[1:N]),
                   CImean(p366[1:N]))
 rownames(ciAndMean) = c(1, 201, 366)
 ciAndMean
-```
-
-```{r 1eSigmaRes, fig.width=5, fig.height=8, out.width="80%"}
-par(mfrow=c(3,1))
-plot(results$sigma, type="l")
-acf(results$sigma)
-hist(results$sigma, nclass=100, prob=T)
 ```
 
 ```{r 1eEvolution, fig.width=5, fig.height=8, out.width="80%"}
