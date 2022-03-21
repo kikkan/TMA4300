@@ -40,8 +40,12 @@ library("ggrepel")
 ```
 
 ```{r}
+<<<<<<< HEAD
 # load("C:/Users/erlin/Documents/Beregningskrevende statistiske modeller/Øvinger 2022/rain.rda")
 load("./rain.rda")
+=======
+load("~/Beregningskrevende-statistiske-modeller/TMA4300/Exe2bsm/rain.rda")
+>>>>>>> d93cde7bbf1839a85b015ea6c5f123cfed2a0441
 ```
 
 
@@ -304,7 +308,7 @@ family="binomial", verbose=TRUE, control.inla=control.inla)
 
 The fitted values of the models in 2a and 2c are plotted together.
 ```{r plot-2c, fig.cap="Fitted values of model 1 and 8"}
-ggplot()+geom_line(data=as.data.frame(mod1$summary.fitted.values$mean), mapping=aes(x=1:366,y=mod1$summary.fitted.values$mean), color="black")+geom_line(data=as.data.frame(mod8$summary.fitted.values$mean), mapping=aes(x=1:366,y=mod8$summary.fitted.values$mean), color="red")+xlab("Day")+ylab("Fitted values")+geom_label_repel()
+ggplot()+geom_line(data=as.data.frame(mod1$summary.fitted.values$mean), mapping=aes(x=1:366,y=mod1$summary.fitted.values$mean, color=" Model 1"), color="black")+geom_line(data=as.data.frame(mod8$summary.fitted.values$mean), mapping=aes(x=1:366,y=mod8$summary.fitted.values$mean, color=" Model 2"), color="red")+xlab("Day")+ylab("Fitted values")+labs("Models")
 ```
 
 From figure \@ref(fig:plot-2c) we can't see any significant differences. The estimated values of the mean of $\pi(\tau_1)$, $\pi(\tau_{201})$ and $\pi (\tau_{366})$ is printed below. 
@@ -349,6 +353,9 @@ inla.doc("loggamma")
 ```
 
 
+```{r}
+?control.fixed
+```
 
 
 

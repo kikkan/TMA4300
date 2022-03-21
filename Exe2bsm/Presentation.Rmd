@@ -1,0 +1,152 @@
+
+
+---
+title: "Exercise 2:\\ Problem 2 c) Solution"
+author: "Christian Oppegård Moen and Erling Fause Steen"
+date: "3/22/2022"
+output:
+  beamer_presentation:
+    slide_level: 2
+    theme: "Singapore"
+    colortheme: "default"
+    font: "serif"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(INLA)
+library(ggplot2)
+```
+
+```{r}
+load("~/Beregningskrevende-statistiske-modeller/TMA4300/Exe2bsm/rain.rda")
+```
+
+## Problem 2 c)
+
+In this problem, we are asked to consider the following model in INLA:
+
+```{r}
+alpha=2
+beta=0.05
+hyper=list(theta=list(prior="loggamma", param=c(alpha,beta)))
+control.inla=list(strategy="simplified.laplace", int.strategy="ccd")
+```
+
+```{r}
+mod1<-inla(n.rain ~ -1+f(day, model="rw1", constr=FALSE),
+data=rain, Ntrials=n.years, control.compute=list(config = TRUE),
+family="binomial", verbose=TRUE, control.inla=control.inla)
+```
+
+
+\small
+```{r, echo = T, eval = T}
+mod <- inla(n.rain ~ f(day, model="rw1", constr=TRUE),
+data=rain, Ntrials=n.years, control.compute=list(config = TRUE),
+family="binomial", verbose=TRUE, control.inla=control.inla)
+```
+\normalsize
+## Want to find out:
+* How is it different from the model in 2a mathematically?
+
+*  Are the predictions from this model significantly different from the model in 2a?
+
+*  Why?
+
+
+## Comparison with the model in 2a
+
+* Model in 2a:
+$$
+y_t | \tau_t \sim \text{Bin}(n_t, \pi(\tau_t)), \ \ \pi(\tau_t)=\frac{\exp(\tau_t)}{1+\exp(\tau_t)}=\frac{1}{1+\exp(-\tau_t)}.
+$$
+
+* The new model includes an intercept term:
+$$
+y_t | \tau_t \sim \text{Bin}(n_t, \pi(\eta_t)), \ \ \pi(\eta_t)=\frac{\exp(\eta_t)}{1+\exp(\eta_t)}=\frac{1}{1+\exp(-\eta_t)}.
+$$
+where $\eta_t=\alpha+\tau_t$ and $\alpha$ is the intercept term. 
+
+* Default prior on $\alpha$. 
+
+* $\text{Loggamma}(\alpha,\beta)$ prior on $\theta$.
+
+* Constr=TRUE $\implies$ Sum-to-zero constraint:
+
+$$
+\sum_{t=1}^{T} \tau_t=0.
+$$
+
+## Comparison of predictions of $\tau$
+
+```{r plot-2c-tau, fig.cap="$\\tau$-values of model 1 and 8"}
+
+tau_1=mod1$summary.random$day$mean
+tau=mod$summary.random$day$mean
+label1=c("Model 1", "Model 8")
+ggplot()+
+  geom_line(data=as.data.frame(tau_1), mapping=aes(x=1:366, y=tau_1, color="Model without intercept"))+geom_line(data=as.data.frame(tau), mapping=aes(x=1:366, y=tau, color="Model with intercept"))+xlab("Day")+ylab("Predicted values of"~tau)+
+  labs(color="Models")
+```
+
+
+## Comparison of predictions of $\pi$
+
+```{r plot-2c, fig.cap="Fitted values of the two models"}
+pi_1<-mod1$summary.fitted.values$mean
+pi<-mod$summary.fitted.values$mean
+ggplot()+
+  geom_line(data=as.data.frame(pi_1), mapping=aes(x=1:366, y=pi_1, color="Model without intercept"))+geom_line(data=as.data.frame(pi), mapping=aes(x=1:366, y=pi, color="Model with intercept"))+xlab("Day")+ylab("Predicted values of "~pi)+
+  labs(color="Models")
+```
+
+## Comparison of predictions of $\pi_{201}$ and $\pi_{366}$
+
+* Predictions from the new model:
+
+\tiny
+```{r, echo=F, eval=T}
+mod$summary.fitted.values[201,]
+mod$summary.fitted.values[366,]
+```
+\normalsize
+* Predictions from model in 2a:
+
+\tiny
+```{r, echo=F, eval=T}
+mod1$summary.fitted.values[201,]
+mod1$summary.fitted.values[366,]
+```
+
+## Explanantion
+
+* Different constraints $\implies$ different results for $\tau$
+* Same shape 
+* Adding the intercept gives almost identical predictions of $\pi$
+
+
+Mathematically:
+
+* Same posterior distribution 
+
+
+
+## Conclusions
+
+>- The model has an intercept term and sum-to-zero constraint
+
+>- No significant differences in predictions between the two models
+
+>- Adding the intercept term to the model with sum-to-zero constraint makes the model as flexible as the model in 2a
+
+
+
+## 
+
+\center
+\Large
+Questions?
+
+
