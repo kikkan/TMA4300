@@ -13,16 +13,29 @@ acceptRatio = function(n, y, tauProp, tau){
   return(exp(y*(tauProp - tau) + n*log((1+exp(tau))/(1+exp(tauProp)))))
 }
 
+acceptRatioBlock = function(I, tauProp, tauPrev){
+  first = sum(rain$n.rain[I]*(tauProp - tauPrev))
+  second = sum(rain$n.years[I]*(log(1+ exp(tauPrev)) - log(1+exp(tauProp))))
+  return(exp(first + second))
+}
+
 
 mhRW = function(tau, y, n, tvec, Sigma, QmultI){
   mu_ab = QmultI %*% matrix(tau[-tvec], ncol=1)
   prop_tau = mvrnorm(n=1, mu_ab[,1], Sigma=Sigma)
-  ratio = 0
-  for (t in 1:length(n)){
-    ratio = ratio + acceptRatio(n[t], y[t], prop_tau[t], tau[tvec[t]])
-  }
+  
+  # ratio = 0
+  # for (t in 1:length(n)){
+  #   ratio = ratio + acceptRatio(n[t], y[t], prop_tau[t], tau[tvec[t]])
+  # }
+  # if (runif(1) < min(c(1,ratio))){
+  #   return(list(tau=prop_tau, accepted=1))
+  # }
+  # else{return(list(tau=tau[tvec], accepted=0))}
+  
+  ratio = acceptRatioBlock(tvec, prop_tau, tau[tvec])
   if (runif(1) < min(c(1,ratio))){
-    return(list(tau=prop_tau, accepted=1))
+    return(list(tau=prop_tau, accepted=length(tvec)))
   }
   else{return(list(tau=tau[tvec], accepted=0))}
 }
@@ -136,7 +149,7 @@ if (F){
 }
 
 M = 10
-N = 1000
+N = 10000
 
 ptm = proc.time()
 # Run ----

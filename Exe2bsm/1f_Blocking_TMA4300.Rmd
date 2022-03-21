@@ -32,6 +32,7 @@ knitr::opts_chunk$set(echo = TRUE,tidy=TRUE,message=FALSE,warning=FALSE,
 library(MASS)
 library(Matrix)
 library(SoDA)
+library(profvis)
 ```
 
 ```{r config, options}
@@ -144,6 +145,7 @@ mcmcBlock = function(N, M=10, sigma0=0.1, tau0=rnorm(366)){
       print(accepted/(i*366))
     }
   }
+  return(list(tau = tau, sigma = sigma))
 }
 ```
 
@@ -174,11 +176,13 @@ Q = Qprecomp(M, Ttot)
 ```
 
 ```{r run, options}
-N = 50000
+N = 10000
 M = 10
 set.seed(321)
 ptm = proc.time()
+profvis({
 results = mcmcBlock(N, rain, M)
+})
 proc.time() - ptm
 ```
 
@@ -203,4 +207,11 @@ if (T){
   par(mfrow=c(1,1))
   plot(results$sigma, type="l")
 }
+```
+
+```{r displayProgression, options}
+par(mfrow=c(3,1))
+plot(link(results$tau[1,]), type = "l")
+plot(link(results$tau[N/2,]), type = "l")
+plot(link(results$tau[N,]), type = "l")
 ```
