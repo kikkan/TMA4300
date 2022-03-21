@@ -35,15 +35,15 @@ control.inla=list(strategy="simplified.laplace", int.strategy="ccd")
 ```
 
 ```{r}
-mod1<-inla(n.rain ~ -1+f(day, model="rw1", constr=FALSE),
+mod1<-inla(n.rain ~ -1+f(day, model="rw1", constr=FALSE, hyper=hyper),
 data=rain, Ntrials=n.years, control.compute=list(config = TRUE),
 family="binomial", verbose=TRUE, control.inla=control.inla)
 ```
 
 
-\small
+\tiny
 ```{r, echo = T, eval = T}
-mod <- inla(n.rain ~ f(day, model="rw1", constr=TRUE),
+mod <- inla(n.rain ~ f(day, model="rw1", constr=TRUE, hyper=hyper),
 data=rain, Ntrials=n.years, control.compute=list(config = TRUE),
 family="binomial", verbose=TRUE, control.inla=control.inla)
 ```
@@ -98,7 +98,7 @@ ggplot()+
 pi_1<-mod1$summary.fitted.values$mean
 pi<-mod$summary.fitted.values$mean
 ggplot()+
-  geom_line(data=as.data.frame(pi_1), mapping=aes(x=1:366, y=pi_1, color="Model without intercept"))+geom_line(data=as.data.frame(pi), mapping=aes(x=1:366, y=pi, color="Model with intercept"))+xlab("Day")+ylab("Predicted values of "~pi)+
+  geom_line(data=as.data.frame(pi_1), mapping=aes(x=1:366, y=pi_1, color="Model without intercept"), linetype=1)+geom_line(data=as.data.frame(pi), mapping=aes(x=1:366, y=pi, color="Model with intercept"), linetype=2)+xlab("Day")+ylab("Predicted values of "~pi)+
   labs(color="Models")
 ```
 
