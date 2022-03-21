@@ -1,0 +1,361 @@
+---
+title: "Project 2"
+author: "Erling Fause Steen og Christian Oppegård Moen"
+date: "08 03 2022"
+output: 
+  bookdown::pdf_document2:
+    toc_depth: '3'
+    number_sections: false
+  # pdf_document:
+  # #   toc: no
+  #   toc_depth: '3'
+subtitle: Computer Intensive Statistical Methods
+urlcolor: blue
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE,tidy=TRUE,message=FALSE,warning=FALSE,
+                      strip.white=TRUE,
+                      prompt=FALSE,
+                      cache=TRUE,
+                      #root.dir = "./Exe2bsm",
+                      size="scriptsize",
+                      fig.width=7, 
+                      fig.height=5, 
+                      fig.align = "center")
+```
+
+
+
+# Problem 2
+
+In this problem we will use INLA to fit the same model as in the previous problem. 
+```{r}
+library("INLA")
+library("ggplot2")
+library("ggrepel")
+```
+
+```{r}
+load("C:/Users/erlin/Documents/Beregningskrevende statistiske modeller/Øvinger 2022/rain.rda")
+```
+
+
+## a) INLA model 1
+
+
+
+To be able to compare the model with the previous Markov chain, we need to use the same priors as in Problem 1. In this model the intercept term is removed so we don't include a prior on this term. We do however need to include a prior for $\sigma_u^2$.
+We have
+$$
+\tau_t \sim \tau_{t-1}+u_t
+$$
+for $u_t \sim N(0, \sigma_u^2).$ 
+In INLA priors are placed on the log precision rather than the variance. The precision is  $1/\sigma_u^2$, and we place the prior on the hyperparameter
+$$
+\theta=\log \left( \frac{1}{\sigma_u^2} \right).
+$$
+We know from problem 1 that $\sigma_u^2$ has a distribution. This means that $\sigma_u^2 \sim \text{Gamma}(\alpha, \beta)$ and $\theta \sim \text{loggamma}(\alpha, \beta).$ 
+
+We therefore place this prior on $\theta$ and use $\alpha=2$ and $\beta=0.05.$
+
+```{r}
+#Prior placed on hyperparameter
+alpha=2
+beta=0.05
+hyper=list(prec=list(prior="loggamma", param=c(alpha,beta)))
+```
+In the chunck below a function that fits a INLA model with a given for given control.inla inputs is made. The function also returns the computation time using proc.time()[3].
+
+```{r}
+INLA_fit<- function(con.inla)
+{
+  time_before=proc.time()[3]
+  mod <- inla(n.rain ~ -1 + f(day, model="rw1", constr=FALSE, hyper=hyper),
+  data=rain, Ntrials=n.years, control.compute=list(config = TRUE),
+  family="binomial", verbose=TRUE, control.inla=con.inla)
+  #computation time
+  time=proc.time()[3]-time_before
+  return(list(mod=mod,time=time))
+}
+```
+
+We also make a function that plots the development of the means of the model with a 95 % credible interval. 
+
+```{r}
+INLA_plot <- function(mod)
+{
+  lower=mod$summary.fitted.values$`0.025quant`
+   # upper bound
+  upper=mod$summary.fitted.values$`0.975quant`
+  #Plot means with 95 % credible interval
+  ggplot(data=as.data.frame(mod$summary.fitted.values$mean), mapping=aes(x=1:366,y=mod$summary.fitted.values$mean))+
+    geom_line(col="red")+
+    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.1)+
+    xlab("Day")+ylab("predicted values")
+}
+```
+
+We fit a model using simplified Laplace as the strategy for approximations and ccd as the strategy for integration. 
+
+```{r}
+# control.inla input
+control.inla = list(strategy="simplified.laplace", int.strategy="ccd")
+fit1<-INLA_fit(control.inla)
+mod1<-fit1$mod
+time1<-fit1$time
+```
+
+
+We look at predictions and uncertainties of INLA and plot the development of the means with a 95 % credible interval for the fitted values.
+```{r plot-mod1, fig.cap="Plot of mean of fitted values of model 1"}
+INLA_plot(mod1)
+```
+
+We see in figure \@ref(fig:plot-mod1) that we get a similar graph as in problem 1. We look specifically at $\pi(\tau_1), \pi(\tau_{201})$ and $\pi(\tau_{366}).$
+
+```{r}
+#pi(tau_1)
+mod1$summary.fitted.values[1,]
+mod1$summary.fitted.values[201,]
+mod1$summary.fitted.values[366,]
+```
+
+The computational time according to the proc.time()[3] is `r as.numeric(time1)`.
+
+## b) Robustness of the results to different control.inla inputs
+
+We want to look at how robust the results of the two control.inputs are. The strategy we used for integration is ccd. The ccd integration is a less costly alternative compared to the grid strategy when the dimensions of the hyperparameter is large. The grid strategy gives the most accurate result, but the number of points grow exponentially with the dimension of $\theta.$ The ccd approach locates fewer points around the mode and is therefore less computationally expensive. Other options for integration strategies are 'eb', 'user' and 'user.std'. The 'auto' option which is the default integration strategy corresponds with the grid approach if the dimension of $\theta$ 2 or lower, and ccd if the dimension of $\theta$ is over 2. We have that the dimension of $\theta$ is 1, so the auto option will correspond with 'grid'. 
+
+The default option for strategy is the simplified Laplace option which is the option we have used here. Another option is the Gaussian approximation which is easy to apply and cheap to compute. However, there could be errors in location or due to skeweness. Simplified Laplace can correct these errors and is computationally faster than the Laplace approximation.
+This method is therefore regarded as a compromise between accuracy and computational cost. Other options are 'adaptive' and 'eb'. 
+
+We fit a couple of different models with different strategies and compare the results. We start by fitting some models with different integration strategies and the 'simplified.laplace' strategy for approximations. The first integration option we use is 'grid'. 
+
+```{r}
+#control.inla input
+control.inla = list(strategy="simplified.laplace", int.strategy="grid")
+
+fit2<-INLA_fit(control.inla)
+mod2<-fit2$mod
+time2<-fit2$time
+```
+
+We plot the result with a 95 % credible interval. 
+```{r plot-mod2, fig.cap="Plot of mean of fitted values of model with strategy=simplified and int.strategy=grid"}
+INLA_plot(mod2)
+```
+As seen in figure \@ref(fig:plot-mod2), this looks very similar to the first model. We also look at $\pi(\tau_1),$ $\pi(\tau_{201})$ and $\pi(\tau_{366})$ for this model. 
+```{r}
+mod2$summary.fitted.values[1,]
+mod2$summary.fitted.values[201,]
+mod2$summary.fitted.values[366,]
+```
+There are no significant differences to the first model. The computational time we get by using proc.time()[3] is `r as.numeric(time2)`, which is barely higher than the first model. 
+
+
+The next integration strategy considered is the 'eb' strategy.
+
+```{r}
+control.inla = list(strategy="simplified.laplace", int.strategy="eb")
+#Time before
+fit3<-INLA_fit(control.inla)
+mod3<-fit3$mod
+time3<-fit3$time
+```
+
+```{r plot-mod3, fig.cap="Plot of mean of fitted values with strategy=simplified laplace and int.strategy=eb"}
+INLA_plot(mod3)
+```
+
+```{r}
+mod3$summary.fitted.values[1,]
+mod3$summary.fitted.values[201,]
+mod3$summary.fitted.values[366,]
+```
+
+
+```{r}
+time3
+```
+The computation time is here `r as.numeric(time3)`, which is the same as the time when using 'grid'. 
+
+
+
+The results for the different integration strategies are very similar. There first difference can be seen in the third and fourth decimal for the different strategies. 
+
+We now look at different strategies for approximation and use the same method for integration strategy. We start by trying the gaussian approach
+
+```{r}
+control.inla = list(strategy="gaussian", int.strategy="ccd")
+fit4<-INLA_fit(control.inla)
+mod4<-fit4$mod
+time4<-fit4$time
+```
+
+
+
+```{r plot-mod4, fig.cap="Plot of fitted values with strategy=gaussian and int.strategy=ccd"}
+INLA_plot(mod4)
+```
+
+```{r}
+mod4$summary.fitted.values[1,]
+mod4$summary.fitted.values[201,]
+mod4$summary.fitted.values[366,]
+```
+The computation time is `r time4`.
+We also try the Laplace approach.
+```{r}
+control.inla = list(strategy="laplace", int.strategy="ccd")
+fit5<-INLA_fit(control.inla)
+mod5<-fit5$mod
+time5<-fit5$time
+```
+
+```{r plot-mod5, fig.cap="Plot of fitted values with strategy=laplace and int.strategy=ccd"}
+INLA_plot(mod5)
+```
+
+```{r}
+mod5$summary.fitted.values[1,]
+mod5$summary.fitted.values[201,]
+mod5$summary.fitted.values[366,]
+```
+
+```{r}
+time5
+```
+
+The running time is `r as.numeric(time5)`. The last possible strategy is 'adaptive'. We fit a model with this strategy.
+
+```{r}
+control.inla = list(strategy="adaptive", int.strategy="ccd")
+fit6<-INLA_fit(control.inla)
+mod6<-fit6$mod
+time6<-fit6$time
+```
+
+```{r plot-mod6, fig.cap="Plot of fitted values with strategy=laplace and int.strategy=ccd"}
+INLA_plot(mod6)
+```
+
+```{r}
+mod6$summary.fitted.values[1,]
+mod6$summary.fitted.values[201,]
+mod6$summary.fitted.values[366,]
+```
+
+
+
+The running time for fitting this model is `r as.numeric(time6)`. The last combination in control.inla we try is using
+Laplace as strategy and grid as strategy for the integration. From prior knowledge of the strategies, we expect this method to have the longest running time. 
+
+```{r}
+control.inla = list(strategy="laplace", int.strategy="grid")
+fit7<-INLA_fit(control.inla)
+mod7<-fit7$mod
+time7<-fit7$time
+```
+
+```{r plot-mod7, fig.cap="Plot of fitted values with strategy=laplace and int.strategy=ccd"}
+INLA_plot(mod7)
+```
+
+```{r}
+mod7$summary.fitted.values[1,]
+mod7$summary.fitted.values[201,]
+mod7$summary.fitted.values[366,]
+```
+
+As seen in figure \@ref(fig:plot-mod7), the results are very similar to the results of the other models. 
+The computation time is `r as.numeric(time7)`, which is as expected the highest running time so far.
+
+The different inputs for control.inla gives very similar results. This imply that the results are very robust for the two control.inputs we have used. We do however notice a significant longer running time when using Laplace for approximations. The running time is also larger when using `grid`compared to using `ccd`.  
+
+## c) INLA model 2
+
+The first difference of this model compared to the first model is that the intercept is not removed. this means that we have
+
+$$
+y_t | \eta_t \sim \text{Bin}(n_t, \pi(\eta_t)), \ \ \pi(\eta_t)=\frac{\exp(\eta_t)}{1+\exp(\eta_t)}=\frac{1}{1+\exp(-\eta_t)}.
+$$
+where $\eta_t=\alpha+\tau_t,$ and $\alpha$ is the intercept.  
+In addition, unlike the previous model, this model uses the argument constr=TRUE.
+This means that there is a sum-to-zero constraint, and the sum of $(\tau_1,..,\tau_n)$ is 
+$$
+\sum_{i=1}^{n} \tau_i=0.
+$$
+We fit the model and compare it to the model from 2a. 
+```{r}
+alpha=2
+beta=0.05
+hyper=list(theta=list(prior="loggamma", param=c(alpha,beta)))
+control.inla=list(strategy="simplified.laplace", int.strategy="ccd")
+
+mod8 <- inla(n.rain ~ f(day, model="rw1", hyper=hyper,constr=TRUE),
+data=rain, Ntrials=n.years, control.compute=list(config = TRUE),
+family="binomial", verbose=TRUE, control.inla=control.inla)
+```
+
+The fitted values of the models in 2a and 2c are plotted together.
+```{r plot-2c, fig.cap="Fitted values of model 1 and 8"}
+ggplot()+geom_line(data=as.data.frame(mod1$summary.fitted.values$mean), mapping=aes(x=1:366,y=mod1$summary.fitted.values$mean), color="black")+geom_line(data=as.data.frame(mod8$summary.fitted.values$mean), mapping=aes(x=1:366,y=mod8$summary.fitted.values$mean), color="red")+xlab("Day")+ylab("Fitted values")+geom_label_repel()
+```
+
+From figure \@ref(fig:plot-2c) we can't see any significant differences. The estimated values of the mean of $\pi(\tau_1)$, $\pi(\tau_{201})$ and $\pi (\tau_{366})$ is printed below. 
+
+
+```{r}
+mod8$summary.fitted.values[1,]
+mod8$summary.fitted.values[201,]
+mod8$summary.fitted.values[366,]
+intercept<-mod8$summary.fixed$mean
+```
+
+
+We can't see any significant differences between the predictions of the two models. 
+The estimated intercept term is `r intercept `. In the model $\eta_t$ is given by 
+$$
+\eta_t=\log \left (\frac{\pi (\eta_t)}{1- \pi (\eta_t)} \right) \implies \tau_t=\log \left (\frac{\pi (\eta_t)}{1- \pi (\eta_t)} \right)-\alpha
+$$
+In the model in 2a, we have
+
+$$
+\tau_t=\log \left (\frac{\pi (\tau_t)}{1- \pi (\tau_t)} \right) 
+$$
+Below, we plot the estimated mean values of $\tau_t$ for $t=1,..,T$ for both models.
+
+
+
+```{r plot-2c-tau, fig.cap="$\\tau$-values of model 1 and 8"}
+
+tau_1=mod1$summary.random$day$mean
+tau_8=mod8$summary.random$day$mean
+label1=c("Model 1", "Model 8")
+ggplot()+
+  geom_line(data=as.data.frame(tau_1), mapping=aes(x=1:366, y=tau_1, color="Model 1"))+geom_line(data=as.data.frame(tau_8), mapping=aes(x=1:366, y=tau_8, color="model 8"))+xlab("Day")+ylab("estimated values of tau")+
+  labs(color="Models")
+```
+
+We see that the estimated $\tau$ values are different between the two models. The reason for this is as stated that there is a sum-to-zero constraint on the second model. However, the shape of the graphs are similar. The intercept term makes up for the fact that there are different constraints and we get very similar results. This can also be seen when calculating the posterior distribution.
+
+```{r}
+inla.doc("loggamma")
+```
+
+
+
+
+
+
+ 
+
+
+
+
+
+
