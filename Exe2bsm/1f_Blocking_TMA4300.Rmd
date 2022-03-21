@@ -1,0 +1,206 @@
+---
+title: "1. f) MCMC Blocking"
+author: "Erling Fause Steen og Christian Oppegård Moen"
+date: "08 03 2022"
+output: 
+  bookdown::pdf_document2:
+    toc_depth: '3'
+    number_sections: false
+  # pdf_document:
+  # #   toc: no
+  #   toc_depth: '3'
+subtitle: Computer Intensive Statistical Methods
+urlcolor: blue
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE,tidy=TRUE,message=FALSE,warning=FALSE,
+                      strip.white=TRUE,
+                      prompt=FALSE,
+                      cache=TRUE,
+                      root.dir = "./Exe2bsm",
+                      size="scriptsize",
+                      fig.width=7, 
+                      fig.height=5, 
+                      fig.align = "center")
+```
+
+```{r libs, include=F}
+library(MASS)
+library(Matrix)
+library(SoDA)
+```
+
+```{r config, options}
+if (F){
+  setwd('./Exe2bsm/')
+  options(error = recover)
+  options(error = NULL)
+}
+```
+
+```{r functions, options}
+link = function(tau){
+  return(exp(tau)/(1+exp(tau)))
+}
+
+
+acceptRatioBlock = function(I, tauProp, tauPrev){
+  return(exp(sum(n.rain[I]*(tauProp - tauPrev)) + 
+             sum(rain$n.years[I]*(log(1+ exp(tauPrev)) -
+                                  log(1+exp(tauProp)))
+                 )
+             )
+         )
+}
+
+
+Qprecomp = function(M, Ttot=366){
+  # Precomputes all Q matrices needed for simulation
+  ## Make I and Q3
+  n.sets = ceiling(Ttot/M)
+  I = matrix(1:(M*(n.sets-1)), ncol = n.sets-1, byrow=F)
+  Ires = (I[M,n.sets-1]+1):Ttot
+  ## Make sparse Q and Qaa and Qab
+  # Q <- bandSparse(Ttot, Ttot, #dimensions
+  #                 (-1):1, #band, diagonal is number 0
+  #                 list(rep(-1, Ttot-1), # Tridiag values
+  #                      rep(2, Ttot),
+  #                      rep(-1, Ttot-1)))
+  
+  # Make non sparse Q
+  Q = triDiag(diagonal = 2, upper = -1, lower = -1, nrow = Ttot)
+  
+  Q[1,1] = 1 
+  Q[Ttot,Ttot] = 1
+  
+  Qaa1 = Q[1:M,1:M]
+  Qaa2 = Q[2:(M+1), 2:(M+1)]
+  Qaa3 = Q[Ires, Ires]
+  
+  Qaa1inv = solve(Qaa1)
+  Qaa2inv = solve(Qaa2)
+  Qaa3inv = solve(Qaa3)
+  
+  Qmult = list(Qmult1 = -Qaa1inv %*% Q[1:M, -(1:M)])
+  for (i in 2:(n.sets-1)){
+    Qmult = append(Qmult, list(-Qaa2inv %*% Q[I[,i], -I[,i]]))
+  }
+  Qmult = append(Qmult, list(-Qaa3inv %*% Q[Ires, -Ires]))
+  names(Qmult) = sprintf("Qmult%d", 1:(n.sets))
+  
+  return(list(Qaa1inv = Qaa1inv, Qaa2inv = Qaa2inv, Qaa3inv = Qaa3inv,
+              Qmult = Qmult,
+              n.sets = n.sets, I = I, Ires = Ires))
+}
+```
+
+```{r mcmcBlocking, options}
+mcmcBlock = function(N, M=10, sigma0=0.1, tau0=rnorm(366)){
+  # Allocate memory
+  tau = matrix(NA, nrow = N, ncol = Ttot) # (N x T)
+  sigma = numeric(length = N)
+  # Assign initial values
+  tau[1,] = tau0
+  sigma[1] = sigma0
+  # Assign Q matrices for easier access
+  Qm = Q$Qmult # precomputed -QaaInverse * Qab
+  n.sets = Q$n.sets
+  Imat = Q$I # (M x (n.sets-1))
+  Ires = Q$Ires
+  
+  # Simulate N times
+  accepted = 0
+  for (i in 2:N){
+    # Perform first MH block step using upper left sub matrices of Q
+    mhBlock = mhBlockStep(tau[i-1,], Imat[,1], sigma[i-1]*Q$Qaa1inv, Qm$Qmult1)
+    tau[i, Imat[,1]] = mhBlock$tau
+    accepted = accepted + mhBlock$accepted
+    
+    # Precompute sigma_u^2 * Q_AA^-1 for all blocks where 1<t<366 
+    Sigma.mid = sigma[i-1]*Q$Qaa2inv
+    # Perform MH block steps for days 1<t<366
+    for (t in 2:(n.sets-1)){
+      mhBlock = mhBlockStep(tau[i-1,], Imat[,t], Sigma.mid, Qm[[t]])
+      tau[i, Imat[,t]] = mhBlock$tau
+      accepted = accepted + mhBlock$accepted
+    }
+    
+    # Perform last MH block step using lower left sub matrices of Q
+    mhBlock.last = mhBlockStep(tau[i-1,], Ires, sigma[i-1]*Q$Qaa3inv, Qm[[n.sets]])
+    tau[i, Ires] = mhBlock.last$tau
+    accepted = accepted + mhBlock.last$accepted
+    
+    # Perform Gibbs step for sigma_u^2
+    tQt = sum((diff(tau[i,]))^2) 
+    sigma[i] = 1/rgamma(1, shape=2 + (Ttot-1)/2, rate=0.05 + 0.5*tQt)
+    
+    # Show progress
+    if (i%%(N/10)==0){
+      print(i/N*100)
+      print(accepted/(i*366))
+    }
+  }
+}
+```
+
+```{r mhBlock, options}
+mhBlockStep = function(tauPrev, I, Sigma, Qm.I){
+  # Inputs
+  # tauPrev : Previous sim tau values
+  # I       : Indices for this block
+  # Sigma   : sigma_u^2 * Q_AA^-1
+  # Qm.I    : -Q_AA^-1 x Q_AB
+  
+  mu.ab = Qm.I %*% tauPrev[-I]
+  tauProp = mvrnorm(n=1, mu=mu.ab, Sigma=Sigma)
+  ratio = acceptRatioBlock(I, tauProp, tauPrev[I])
+  # Random walk 1
+  if (runif(1) < min(c(1,ratio))){
+    return(list(tau=tauProp, accepted=length(I)))
+  }
+  else{return(list(tau=tauPrev[I], accepted=0))}
+}
+```
+
+```{r global_stuff, options}
+load('./rain.rda')
+attach(rain)
+Ttot = 366
+Q = Qprecomp(M, Ttot)
+```
+
+```{r run, options}
+N = 50000
+M = 10
+set.seed(321)
+ptm = proc.time()
+results = mcmcBlock(N, rain, M)
+proc.time() - ptm
+```
+
+```{r traceAutoHist, options}
+par(mfrow=c(3,3))
+if (T){
+  p1 = link(results$tau[,1])
+  p201 = link(results$tau[,201])
+  p366 = link(results$tau[,366])
+  plot(p1, type="l")
+  plot(p201, type="l")
+  plot(p366, type="l")
+  
+  acf(results$tau[,1])
+  acf(results$tau[,201])
+  acf(results$tau[,365])
+  
+  hist(p1, nclass=100, prob=T)
+  hist(p201, nclass=100, prob=T)
+  hist(p366, nclass=100, prob=T)
+  
+  par(mfrow=c(1,1))
+  plot(results$sigma, type="l")
+}
+```

@@ -32,6 +32,7 @@ acceptRatio = function(n, y, tauProp, tau){
 
 
 mhRW = function(tau, sigma, yt, t, normVec=NA){
+  # separate this maybe? as jostein did
   if (t==1){
     mu_ab = tau[2]
     sigma_aa = sigma

@@ -1,6 +1,7 @@
 # Libs ----
 library(MASS)
 library(Matrix)
+library(SoDA)
 
 # 1e) fncs ----
 link = function(tau){
@@ -33,11 +34,9 @@ mcmcBlock = function(N, dt, M = 10, sigma0=0.1){
   # Changed for block
   # Allocate memory
   Ttot = 366
-  tau = matrix(NA, nrow=N, ncol = Ttot) 
+  tau = matrix(NA, nrow = N, ncol = Ttot) 
   sigma = numeric(length = N)
-  tauOld = numeric(length = Ttot)
-  normMat = matrix(rep(rnorm(Ttot), N), nrow = N, ncol=Ttot)
-  normVec = normMat[1,]
+  tauOld = numeric(length = Ttot) # Remove?
   
   # Find init vals
   tau[1,] = rnorm(Ttot) # init tau drawn from normal distr.
@@ -54,31 +53,28 @@ mcmcBlock = function(N, dt, M = 10, sigma0=0.1){
   # Run mcmc for N iterations
   accepted = 0
   for (i in 2:N){
-    tauOld = tau[i-1,]
-    sigma_i = sigma[i-1]
     # First step using Qaa1inv
-    # browser()
-    Sigma2 = sigma_i*Qs$Qaa2inv # covar mat for 1<t<366
-    rtemp= mhRW(tauOld, y=dt$n.rain[I[1,]], n=dt$n.years[I[1,]], 
-                tvec=I[1,], sigma_i*Qs$Qaa1inv, Qmult[[1]])
-    tau[i, I[1,]] = rtemp$tau
+    rtemp= mhRW(tau[i-1,], y=dt$n.rain[I[,1]], n=dt$n.years[I[,1]], 
+                tvec=I[,1], sigma[i-1]*Qs$Qaa1inv, Qmult[[1]])
+    tau[i, I[,1]] = rtemp$tau
     accepted = accepted + rtemp$accepted
     
+    Sigma2 = sigma[i-1]*Qs$Qaa2inv # covar mat for 1<t<366
     for (t in 2:(n.sets-1)){
-      rtemp= mhRW(tau=tauOld, y=dt$n.rain[I[t,]], n=dt$n.years[I[t,]], 
-                  tvec=I[t,], Sigma=Sigma2, QmultI=Qmult[[t]])
-      tau[i, I[t,]] = rtemp$tau
+      rtemp= mhRW(tau=tau[i-1,], y=dt$n.rain[I[,t]], n=dt$n.years[I[,t]], 
+                  tvec=I[,t], Sigma=Sigma2, QmultI=Qmult[[t]])
+      tau[i, I[,t]] = rtemp$tau
       accepted = accepted + rtemp$accepted
     }
     
-    rtemp= mhRW(tauOld, dt$n.rain[Ires], dt$n.years[Ires], 
-                Ires, sigma_i*Qs$Qaa3inv, Qmult[[n.sets]])
+    rtemp= mhRW(tau[i-1,], dt$n.rain[Ires], dt$n.years[Ires], 
+                Ires, sigma[i-1]*Qs$Qaa3inv, Qmult[[n.sets]])
     tau[i, Ires] = rtemp$tau
     accepted = accepted + rtemp$accepted
     
     # tQt = sum((tau[i,-366] - tau[i,-1])^2) 
     tQt = sum((diff(tau[i,]))^2) 
-    sigma[i] = 1/rgamma(1, shape=2 + (366-1)/2, rate=0.05 + 0.5*tQt) # Gibbs inline
+    sigma[i] = 1/rgamma(1, shape=2 + (Ttot-1)/2, rate=0.05 + 0.5*tQt) # Gibbs inline
     
     if (i%%(N/10)==0){
       print(i/N*100)
@@ -94,76 +90,41 @@ mcmcBlock = function(N, dt, M = 10, sigma0=0.1){
 Qprecomp = function(Ttot, M){
   # Precomputes all Q matrices needed for simulation
   ## Make I and Q3
-  n.sets = floor(Ttot/M)
+  n.sets = ceiling(Ttot/M)
   mod = Ttot %% M
-  I = matrix(1:(Ttot - mod), ncol = M, byrow=T)
+  I = matrix(1:(M*(n.sets-1)), ncol = n.sets-1, byrow=F)
+  Ires = (I[M,n.sets-1]+1):Ttot
   ## Make sparse Q and Qaa and Qab
-  Q <- bandSparse(Ttot, Ttot, #dimensions
-                  (-1):1, #band, diagonal is number 0
-                  list(rep(-1, Ttot-1), # Tridiag values
-                       rep(2, Ttot),
-                       rep(-1, Ttot-1)))
+  # Q <- bandSparse(Ttot, Ttot, #dimensions
+  #                 (-1):1, #band, diagonal is number 0
+  #                 list(rep(-1, Ttot-1), # Tridiag values
+  #                      rep(2, Ttot),
+  #                      rep(-1, Ttot-1)))
   
   # Make non sparse Q
-  # Q=matrix(0, nrow = 366, ncol = 366)
-  # diag(Q)=2
-  # Q[c(1, length(Q))]=1
-  # Q[abs(row(Q) - col(Q)) == 1] <- -1
+  Q = triDiag(diagonal = 2, upper = -1, lower = -1, nrow = Ttot)
   
   Q[1,1] = 1 
   Q[Ttot,Ttot] = 1
   
   Qaa1 = Q[1:M,1:M]
   Qaa2 = Q[2:(M+1), 2:(M+1)]
+  Qaa3 = Q[Ires, Ires]
   
   Qaa1inv = solve(Qaa1)
   Qaa2inv = solve(Qaa2)
+  Qaa3inv = solve(Qaa3)
   
-  Qab = list(Qab1 = Q[1:M, -(1:M)]) # Qab to be used with Q1inv
-  
-  Qmult = list(QaaInvQab1 = -Qaa1inv %*% Qab$Qab1)
-  
-  
-  if (mod){
-    nTot = n.sets + 1
-    Ires = (Ttot-mod+1):Ttot
-    Qaa3 = Q[Ires, Ires]
-    Qaa3inv = solve(Qaa3)
-    for (i in 2:n.sets){
-      # Qab[i] = Q[I[i,], -I[i,]]
-      Qab = append(Qab,Q[I[i,], -I[i,]])
-      # Qmult[i] = -Qaa2inv %*% Qab[[i]]
-      Qmult = append(Qmult, -Qaa2inv %*% Qab[[i]]) # sparse
-      # Qmult = append(Qmult, -Qaa2inv %*% Qab[i]) # not sparse
-    }
-    # Qab[n.sets+1] = Q[Ires, -Ires]
-    Qab = append(Qab, Q[Ires, -Ires])
-    # Qmult[n.sets + 1] = -Qaa3inv %*% Qab[[n.sets + 1]]
-    Qmult = append(Qmult, -Qaa3inv %*% Qab[[n.sets + 1]]) # sparse
-    # Qmult = append(Qmult, -Qaa3inv %*% Qab[n.sets + 1])
-  } else {
-    nTot = n.sets
-    Qaa3 = Q[(Ttot-M):Ttot, (Ttot-M):Ttot]
-    Qaa3inv = solve(Qaa3)
-    for (i in 2:(n.sets-1)){
-      # Qab[i] = Q[I[i,], -I[i,]]
-      Qab = append(Qab,Q[I[i,], -I[i,]])
-      # Qmult[i] = -Qaa2inv %*% Qab[[i]]
-      Qmult = append(Qmult, -Qaa2inv %*% Qab[[i]]) # sparse
-      # Qmult = append(Qmult, -Qaa2inv %*% Qab[i]) # not sparse
-    }
-    Qab = append(Qab,Q[I[nTot,], -I[nTot,]])
-    Ires = Qab[nTot]
-    Qmult = append(Qmult, -Qaa3inv %*% Qab[[nTot]]) # sparse
-    # Qmult = append(Qmult, -Qaa3inv %*% Qab[nTot]) # not sparse
+  Qmult = list(Qmult1 = -Qaa1inv %*% Q[1:M, -(1:M)])
+  for (i in 2:(n.sets-1)){
+    Qmult = append(Qmult, list(-Qaa2inv %*% Q[I[,i], -I[,i]]))
   }
+  Qmult = append(Qmult, list(-Qaa3inv %*% Q[Ires, -Ires]))
+  names(Qmult) = sprintf("Qmult%d", 1:(n.sets))
   
-  names(Qab) = sprintf("Qab%d", 1:(n.sets + 1))
-  names(Qmult) = sprintf("Qmult%d", 1:(n.sets + 1))
-  
-  return(list(Qaa1inv = solve(Qaa1), Qaa2inv = solve(Qaa2), Qaa3inv = solve(Qaa3),
-              Qab = Qab, Qmult = Qmult,
-              n.sets = nTot, I = I, Ires = Ires))
+  return(list(Qaa1inv = Qaa1inv, Qaa2inv = Qaa2inv, Qaa3inv = Qaa3inv,
+              Qmult = Qmult,
+              n.sets = n.sets, I = I, Ires = Ires))
 }
 
 
@@ -177,9 +138,9 @@ if (F){
 M = 10
 N = 1000
 
-set.seed(321)
-# Run ----
 ptm = proc.time()
+# Run ----
+set.seed(321)
 results = mcmcBlock(N, rain, M)
 proc.time() - ptm
 

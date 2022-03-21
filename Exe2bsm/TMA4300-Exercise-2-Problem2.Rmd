@@ -21,7 +21,7 @@ knitr::opts_chunk$set(echo = TRUE,tidy=TRUE,message=FALSE,warning=FALSE,
                       strip.white=TRUE,
                       prompt=FALSE,
                       cache=TRUE,
-                      #root.dir = "./Exe2bsm",
+                      root.dir = "./Exe2bsm",
                       size="scriptsize",
                       fig.width=7, 
                       fig.height=5, 
@@ -40,7 +40,8 @@ library("ggrepel")
 ```
 
 ```{r}
-load("C:/Users/erlin/Documents/Beregningskrevende statistiske modeller/Øvinger 2022/rain.rda")
+# load("C:/Users/erlin/Documents/Beregningskrevende statistiske modeller/Øvinger 2022/rain.rda")
+load("./rain.rda")
 ```
 
 
