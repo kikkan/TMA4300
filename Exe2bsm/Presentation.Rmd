@@ -67,9 +67,9 @@ $$
 $$
 y_t | \tau_t \sim \text{Bin}(n_t, \pi(\eta_t)), \ \ \pi(\eta_t)=\frac{\exp(\eta_t)}{1+\exp(\eta_t)}=\frac{1}{1+\exp(-\eta_t)}.
 $$
-where $\eta_t=\alpha+\tau_t$ and $\alpha$ is the intercept term. 
+where $\eta_t=\beta_0+\tau_t$ and $\alpha$ is the intercept term. 
 
-* Default prior on $\alpha$. 
+* Default prior on $\beta_0$. 
 
 * $\text{Loggamma}(\alpha,\beta)$ prior on $\theta$.
 
@@ -129,7 +129,7 @@ mod1$summary.fitted.values[366,]
 
 Mathematically:
 
-* Same posterior distribution 
+* Looking at the posterior distribution
 
 
 
