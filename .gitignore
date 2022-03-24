@@ -1,4 +1,6 @@
-project1_files/
+# My changes
+_files/
+_cache/
 
 # History files
 .Rhistory
