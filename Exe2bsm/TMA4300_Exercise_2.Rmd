@@ -337,13 +337,13 @@ CImean = function(p){
   c(mean=mean(p), quantile(p, probs = c(0.025,0.975)))
 }
 
-plotTAH = function(p, hcol = "cyan3", xlab = "", ylab = ""){
+plotTAH = function(p, hcol = "cyan3", xlab = "", ylab = "", burn=3000){
   # Plots trace, autocorr and hist of probs
   l = quantile(p, probs = 0.025)
   u = quantile(p, probs = 0.975)
   plot(p, type="l", xlab = "Iterations", ylab="Probability")
   abline(h=mean(p), col="red")
-  abline(v=3000, lty=2, col="gray")
+  abline(v=burn, lty=2, col="gray")
   acf(p, main="")
   hist(p, nclass=200, prob=T, main="", xlab="Probability", xlim=c(l-0.01,u+0.01))
   abline(v = l, col=hcol)
@@ -570,15 +570,12 @@ mcmcBlock = function(N, M=10, sigma0=0.1, tau0=rnorm(366)){
     tQt = sum((diff(tau[i,]))^2) 
     sigma[i] = 1/rgamma(1, shape=2 + (Ttot-1)/2, scale=0.05 + 0.5*tQt)
     
-    # Show progress
-    # if (i%%(N/10)==0){
-    #   print(i/N*100)
-    #   print(accepted/(i*366))
-    # }
     setTxtProgressBar(pb,i)
   }
   close(pb)
-  return(list(tau = tau, sigma = sigma))
+  results = list(tau, sigma, accepted/(N*Ttot))
+  names(results) = c(paste0('tau',M), paste0('sigma',M), paste0('accProb',M))
+  return(results)
 }
 
 mhBlockStep = function(tauPrev, I, Sigma, Qm.I){
@@ -597,31 +594,100 @@ mhBlockStep = function(tauPrev, I, Sigma, Qm.I){
   }
   else{return(list(tau=tauPrev[I], accepted=0))}
 }
-```
 
-```{r run, options}
 M = 10
+N = 5000
+Ttot = 366
+```
+In the following chunks we will run the block updating MCMC sampler for $N=$ `r N` simulations with intervals of length $M=$ `r M`. First we present the computation time followed by some visualizations for an overview of the results. Then we will discuss burning and do some computations and visualizations on the burned results. 
+```{r 1frunSingle, options}
+
+Q = Qprecomp(M)
+pb = txtProgressBar(min = 0, max = N, initial = 0) 
 set.seed(321)
 ptm = proc.time()
 # profvis({results = mcmcBlock(N, rain, M)}) # For profiling
 resultsBlock = mcmcBlock(N, M)
-proc.time() - ptm
+timeBlock = proc.time() - ptm
+timeBlock
 ```
+
+```{r 1fcomputations, options}
+pSeq = apply(resultsBlock$tau, 2, link)
+par(mfrow=c(3,3))
+plotTAH(pSeq[,1], burn=2000)
+plotTAH(pSeq[,201], burn=2000)
+plotTAH(pSeq[,366], burn=2000)
+```
+
+```{r 1fburn, fig.cap="mean"}
+pSeqCI = apply(pSeq, 2, CImean) # Compute mean and credibility interval
+
+# Burn
+burn=2000
+resultsB = resultsBlock
+resultsB$tau = resultsBlock$tau[burn:N,]
+resultsB$sigma = resultsBlock$sigma[burn:N]
+pSeqB = pSeq[burn:N,]
+pSeqCIB = apply(pSeqB, 2, CImean) # Compute mean and credibility interval
+ciAndMean = rbind((pSeqCI[,1]), (pSeqCIB[,1]), 
+                  (pSeqCI[,201]), (pSeqCIB[,201]),
+                  (pSeqCI[,366]), (pSeqCIB[,366]), 
+                  CImean(resultsBlock$sigma), CImean(resultsB$sigma))
+rownames(ciAndMean) = c("1","1 B", "201","201 B", "366","366 B", "sigma", "sigma B")
+# knitr::kable(round(ciAndMean,4), caption = "mean and stuff")
+knitr::kable(round(ciAndMean,4), caption = "mean and stuff")
+```
+
+```{r 1fplotBurn, options}
+par(mfrow=c(3,3))
+plotTAH(pSeqB[,1], burn=2000)
+plotTAH(pSeqB[,201], burn=2000)
+plotTAH(pSeqB[,366], burn=2000)
+```
+
+```{r 1fggMean, fig.cap="makeCap"}
+gg1e.df = data.frame(probPreds = pSeq[N,], l = pSeqCI[2, ], u = pSeqCI[3,],
+                     meanPreds = pSeqCI[1,], probsReal = n.rain/n.years, 
+                     day = day)
+ggplot(data = gg1e.df, aes(x = day, y = probPreds)) + 
+  geom_line(aes(color = "tau", linetype="tau")) +
+  geom_line(aes(y = meanPreds, color = "mean", linetype="mean")) +
+  geom_point(aes(y = probsReal, color = "n.rain/n.years",
+                size="n.rain/n.years"), alpha = 0.3) + 
+  scale_linetype_manual(
+    name=" ",
+    breaks = c("tau", "mean", "n.rain/n.years"),
+    values = c(2, 1, NA),
+    labels = expression(pi*(tau),'Mean','Data probability')
+  ) +
+  scale_size_manual(
+    name=" ",
+    breaks = c("tau", "mean", "n.rain/n.years"),
+    values = c(NA, NA, 0.1),
+    labels = expression(pi*(tau),'Mean','Data probability')
+    ) +
+  scale_color_manual(
+    name=" ",
+    values = c("tau"="green", "mean"="black","n.rain/n.years"="blue"),
+    labels = expression(pi*(tau),'Mean','Data probability')
+  ) +
+  labs(y="Probabilities", x="Day") +
+  theme_minimal()
+```
+
 
 ```{r 1fTuneM, options}
 N = 5000
 
-Ttot = 366
-
-
-
-Mlist = c(2,5,10,20)
+Mlist = c(2,5,10,20,40,80,160)
 resultList = list()
-times = c()
-
+time = c()
+set.seed(321)
 tau0 = rnorm(366)
 
 for (i in 1:length(Mlist)){
+  set.seed(321)
   pb = txtProgressBar(min = 0, max = N, initial = 0) 
   Q = Qprecomp(Mlist[i], Ttot)
   start = proc.time()[3]
@@ -633,9 +699,21 @@ time
 ```
 
 ```{r 1fsomeResults, options}
-pSeqBlock2 = apply(resultList[[1]], 2, link)
-pSeqBlock5 = apply(resultList[[3]], 2, link)
-pSeqBlock10 = apply(resultList[[5]], 2, link)
-pSeqBlock20 = apply(resultList[[7]], 2, link)
+# pSeqBlock2 = apply(resultList[[1]], 2, link)
+# pSeqBlock5 = apply(resultList[[4]], 2, link)
+# pSeqBlock10 = apply(resultList[[5]], 2, link)
+# pSeqBlock20 = apply(resultList[[7]], 2, link)
+```
+
+```{r 1ftimeAcc, options}
+k = seq(3,length(resultList), by=3)
+accProbs = c()
+for (i in k){
+  accProbs = c(accProbs, resultList[[i]])
+}
+
+par(mfrow=c(1,1))
+plot(Mlist, time, lty=2, ylim=c(0, max(time)))
+lines(Mlist, accProbs*100)
 ```
 

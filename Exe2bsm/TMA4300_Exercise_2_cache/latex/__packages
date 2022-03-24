@@ -1,5 +1,6 @@
-base
 knitr
 ggplot2
 MASS
 Matrix
+SoDA
+profvis

@@ -3,6 +3,10 @@ library(Matrix)
 # setwd('./Exe2bsm')
 load('./rain.rda')
 
+k = 10
+l = list(c(10,2,4),c(23,1))
+l
+names(l) = c(paste0("tau", k), sigma)
 
 Qprecomp = function(Ttot, M){
   # Precomputes all Q matrices needed for simulation
