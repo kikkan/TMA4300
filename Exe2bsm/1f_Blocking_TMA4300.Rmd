@@ -137,7 +137,7 @@ mcmcBlock = function(N, M=10, sigma0=0.1, tau0=rnorm(366)){
     
     # Perform Gibbs step for sigma_u^2
     tQt = sum((diff(tau[i,]))^2) 
-    sigma[i] = 1/rgamma(1, shape=2 + (Ttot-1)/2, rate=0.05 + 0.5*tQt)
+    sigma[i] = 1/rgamma(1, shape=2 + (Ttot-1)/2, scale=0.05 + 0.5*tQt)
     
     # Show progress
     if (i%%(N/10)==0){
@@ -170,14 +170,18 @@ mhBlockStep = function(tauPrev, I, Sigma, Qm.I){
 
 ```{r global_stuff, options}
 load('./rain.rda')
+setwd('./Exe2bsm')
 attach(rain)
-Ttot = 366
-Q = Qprecomp(M, Ttot)
+
 ```
 
 ```{r run, options}
-N = 10000
+N = 50000
 M = 10
+Ttot = 366
+Q = Qprecomp(M, Ttot)
+
+
 set.seed(321)
 ptm = proc.time()
 profvis({
@@ -214,4 +218,8 @@ par(mfrow=c(3,1))
 plot(link(results$tau[1,]), type = "l")
 plot(link(results$tau[N/2,]), type = "l")
 plot(link(results$tau[N,]), type = "l")
+```
+
+```{r sigmaResults, options}
+mean(results$sigma)
 ```

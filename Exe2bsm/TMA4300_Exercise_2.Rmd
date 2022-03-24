@@ -17,15 +17,17 @@ editor_options:
 
 ```{r setup, include=FALSE}
 library(knitr)
-knitr::opts_chunk$set(echo = TRUE,tidy=TRUE,message=FALSE,warning=FALSE,
-                      strip.white=TRUE,
-                      prompt=FALSE,
-                      cache=TRUE,
-                      root.dir = "./Exe2bsm",
-                      size="scriptsize",
-                      fig.width=7, 
-                      fig.height=5, 
-                      fig.align = "center")
+knitr::opts_chunk$set(
+  echo = T, tidy=T, message=F, warning=F,
+  strip.white=F,
+  prompt=F,
+  cache=T,
+  root.dir = "./Exe2bsm",
+  size="scriptsize",
+  fig.width=7, 
+  fig.height=5, 
+  fig.align = "center"
+)
 ```
 
 
@@ -33,6 +35,8 @@ knitr::opts_chunk$set(echo = TRUE,tidy=TRUE,message=FALSE,warning=FALSE,
 library(ggplot2)
 library(MASS)
 library(Matrix)
+library(SoDA)
+library(profvis)
 if (F){
   options(error = recover)
   options(error = NULL)
@@ -57,6 +61,9 @@ In Figure \@ref(fig:displayData) we see the number of times the rainfall has exc
 
 ```{r displayData, fig.cap="The Tokyo Rainfall dataset"}
 load("./rain.rda")
+day     = rain$day
+n.rain  = rain$n.rain
+n.years = rain$n.years
 ##Plotting the data
 ggplot(data=rain, mapping=aes(x=day, y=n.rain)) + 
   geom_line() + 
@@ -67,7 +74,7 @@ ggplot(data=rain, mapping=aes(x=day, y=n.rain)) +
 
 
 ## b) Likelihood
-The likelihood of Equation \@ref(eq:1response) is given by
+The likelihood of Equation \@ref(eq:1response) is given by \textcolor{red}{bc of conditional indep}
 $$
 \begin{array}{rl}
   L(\pi (\boldsymbol{\tau})) &= \prod_{i=1}^{T} \left(
@@ -76,7 +83,7 @@ $$
   \end{array} \right)
   \pi(\tau_t)^{y_t}(1-\pi(\tau_t)^{n_t-y_t} 
   \\
-  &\propto \prod_{i=1}^{T} \pi(\tau_t)^{y_t}(1-\pi(\tau_t)^{n_t-y_t} 
+  &\propto \prod_{i=1}^{T} \pi(\tau_t)^{y_t}(1-\pi(\tau_t))^{n_t-y_t} 
   \\
   &= \prod_{t=1}^{T} \left(\frac{\exp(\tau_t)}{1+\exp(\tau_t)}\right)^{y_t}
   \left( 1- \frac{\exp(\tau_t)}{1+\exp(\tau_t)}\right)^{n_t - y_t},
@@ -95,7 +102,7 @@ $$
   &= P(\boldsymbol{y} | \sigma^2_u,\boldsymbol{\tau}) P(\tau|\sigma^2_u)P(\sigma^2_u),
 \end{aligned}
 $$
-where $\boldsymbol{y} = (y_1,...,y_T)^T$, $\boldsymbol{\tau} = (\tau_1,..., \tau_T)$ and $P(\boldsymbol{y} | \sigma^2_u,\boldsymbol{\tau}) = L(\pi( \boldsymbol{\tau}))$. Based on model assumptions mentioned in the introduction, we have $\tau_t \sim \tau_{t-1}$ for $u_t \stackrel{iid}{\sim} \mathcal{N}(0, \sigma_u^2)$ so that
+where $\boldsymbol{y} = (y_1,...,y_T)^T$, $\boldsymbol{\tau} = (\tau_1,..., \tau_T)$ and $P(\boldsymbol{y} | \sigma^2_u,\boldsymbol{\tau}) = L(\pi( \boldsymbol{\tau}))$. Based on model assumptions mentioned in the introduction, we have $\tau_t \sim \tau_{t-1} + u_t$ for $u_t \stackrel{iid}{\sim} \mathcal{N}(0, \sigma_u^2)$ so that
 $$
 p(\boldsymbol{\tau} | \sigma_u^2) = \prod_{t=2}^{T} \frac{1}{\sigma_u} \exp\left\{ -\frac{1}{2\sigma^2_u}(\tau_t - \tau_{t-1})^2 \right\}.
 $$
@@ -119,9 +126,9 @@ $$
   exp\left\{ -\frac{1}{\sigma^2_u} \left( \frac12 \boldsymbol{\tau Q \tau} + \beta \right)  \right\}
 \end{aligned}
 $$
-for a tridiagonal matrix $\boldsymbol{Q}$ with diagonal elements equal to $2$ except first and last element which are $1$, and the offdiagonal elements equal to $-1$. We recognize the posterior as the core of an inverse gamma $\mathrm{IG}(\alpha^*, \beta^*)$ with shape $\alpha^* = \alpha + \frac12(T-1)$ and scale $\beta^* = \beta + \frac12 \boldsymbol{\tau Q \tau}$.
+for a tri-diagonal matrix $\boldsymbol{Q}$ with diagonal elements equal to two except first and last element which are one, and the off-diagonal elements equal to $-1$. We recognize the posterior as the core of an inverse gamma $\mathrm{IG}(\alpha^*, \beta^*)$ with shape $\alpha^* = \alpha + \frac12(T-1)$ and scale $\beta^* = \beta + \frac12 \boldsymbol{\tau Q \tau}$.
 
-## d) Acceptance probability
+## d) Acceptance probability {#sec:1d}
 Let $\mathcal{I} \subseteq \{1,2,...,366\}$ be a set of time indices, and let $- \mathcal{I} = \{1,2,...,366\} \setminus \mathcal{I}$. Furthermore, let $\boldsymbol{\tau}'$ denote the proposed values for $\boldsymbol{\tau}$. The MH step needs an acceptance probability denoted $\alpha$ for the proposed values $\boldsymbol{\tau}'_\mathcal{I}$. By using iterative conditioning we can write the acceptance probability as
 $$
  \alpha(\boldsymbol{\tau}_ \mathcal{I}| \boldsymbol{\tau}_ {-\mathcal{I}}, \sigma_u^2, \boldsymbol{y}) 
@@ -164,9 +171,50 @@ $$
 which is the minimum of 1 and the ratio of likelihoods conditioned on the proposed values and the old values.
 
 
-## e) Implementation
-In this section we implement an MCMC sampler for the posterior $P(\boldsymbol{\pi}, \sigma_u^2| \boldsymbol{y})$. For the conditional prior, $P(\tau_t | \boldsymbol{\tau}_{-t}, \sigma_u)$, we use an MH steps, and for $\sigma_u$ we use Gibbs steps. We assume $\alpha = 2$ and $\beta = 0.05$ for the response given in Equation \@ref(eq:1response), and the initial value for $\sigma_u^2=0.1$. Initial values for $\tau$ are drawn from a standard normal distribution and the number of iterations is $N=50'000$.
-```{r 1Functions, options}
+## e) Individual implementation {#sec:1e}
+In this section we implement an MCMC sampler for the posterior $P(\boldsymbol{\pi}, \sigma_u^2| \boldsymbol{y})$. For the conditional prior, $P(\tau_t | \boldsymbol{\tau}_{-t}, \sigma_u)$, we use MH steps sequentially, and for $\sigma_u$ we use Gibbs steps. The MH steps acceptance probability for updating individual $\tau_t$ parameters can be rewritten to improve computation time. In section [1.d)](#sec:1d) we found that the acceptance probability is a ratio of likelihoods, which in the individual update case is given by
+
+\begin{align}(\#eq:1eAccIndivid)
+  \frac{P({y}_{t}|{\tau}'_t)}
+  {P({y}_t | {\tau}_t)} 
+  &= 
+  \frac{\pi(\tau_t')^{y_t}(1-\pi(\tau_t'))^{n_t-y_t}}
+  {\pi(\tau_t)^{y_t}(1-\pi(\tau_t))^{n_t-y_t}}              \notag \\
+  &= 
+  \frac{ \exp\{y_t\tau_t' - n_t \ln(1+e^{\tau'})\}}
+  {\exp\{y_t\tau_t - n_t \ln(1+e^{\tau})\}}                 \notag \\
+  &=
+  \exp\left\{y_t(\tau'_t - \tau_t) + n_t\ln \left( \frac{1+e^{\tau}}{1+e^{\tau'}}\right)
+  \right\}, 
+\end{align}
+
+for which we chose to use the logarithm seen in the function `logAccRatio`. Thus, for our random walk we accept the proposed value if $\ln(r)$ is smaller than the logarithm of the ratio of likelihoods shown in Equation \@ref(eq:1eAccIndivid). The $\tau_ \mathcal{I}$ parameters for day $\mathcal{I} = t$ and days $- \mathcal{I}$ are multivariate Gaussian,
+$$
+\left(\begin{array}{l}
+  {\tau}_{t} \\ 
+  \boldsymbol{\tau}_{-t} 
+\end{array}\right) 
+\sim 
+M V N\left(\left(\begin{array}{l}
+{\mu}_{t} \\
+\boldsymbol{\mu}_{-t}
+\end{array}\right),\left(\begin{array}{ll}
+{Q}_{t,t} & \mathbf{Q}_{t, -t} \\
+\mathbf{Q}_{-t, t} & \mathbf{Q}_{-t,-t}
+\end{array}\right)^{-1}\right).
+$$
+The conditional mean and precision used to draw the proposed value for $\tau_t$ are given by
+$$
+\begin{aligned}
+  &{\mu}_{t \mid -t}={\mu}_{t}-{Q}_{t, t}^{-1} \boldsymbol{Q}_{t,-t} \left(\boldsymbol{\tau}_{-t}-\boldsymbol{\mu}_{-t}\right) 
+  = -Q_{t,t}^{-1} \boldsymbol{Q}_{t,-t}\boldsymbol{\tau}_{-t}
+  \\
+  &{Q}_{t \mid -t}={Q}_{t,t}.
+\end{aligned}
+$$
+
+For the implementation we use the given values $\alpha = 2$ and $\beta = 0.05$ for the response given in Equation \@ref(eq:1response), and we set the initial value of $\sigma_u^2$ to be $0.05$. Initial values for $\tau$ are drawn from a standard normal distribution. We run the MCMC sampler for a total of $N=50000$ iterations. In the following chunk are the functions used for the individually updating sampler followed by the chunk for which we run the sampler. 
+```{r 1e.Functions, fig.cap="Functions for individually updated $\\tau_t$ parameters"}
 link = function(tau){
   # Expit link
   return(exp(tau)/(1+exp(tau)))
@@ -177,118 +225,160 @@ logbin = function(n, y, tau){
   return(y*log(1+exp(-tau)) - (n-y)*log(1+exp(tau)))
 }
 
-acceptRatio = function(n, y, tauProp, tau){
-  # Confirmed faster. N=1000: 4.7 vs 3.81
-  return(exp(y*(tauProp - tau) + n*log((1+exp(tau))/(1+exp(tauProp)))))
+logAccRatio = function(n, y, tauProp, tau) {
+  return(y*(tauProp - tau) + n* log((1+exp(tau))/(1+exp(tauProp))))
 }
 
-
-mhRW = function(tau, sigma, yt, t, normVec=NA){
-  if (t==1){
-    mu_ab = tau[2]
-    sigma_aa = sigma
-  }
-  else if (t==366){
-    mu_ab = tau[365]
-    sigma_aa = sigma
-  }
-  else{
-    mu_ab = 1/2 * (tau[t-1] + tau[t+1])
-    sigma_aa = sigma/2
-  }
-  # prop_tau = rnorm(1,mean=mu_ab, sd=sqrt(sigma_aa))
-  # prop_tau = normVec[t]*sigma + mu_ab
-  prop_tau = normVec*sigma + mu_ab
-  n = ifelse(t==60,10,39)
-  ratio = acceptRatio(n, yt, prop_tau, tau[t])
-  if (runif(1) < min(c(1,ratio))){
+mhFirst = function(tau, sigma, yt, t, norm_it, unif){
+  # Function to take the first MH step, i.e., for t=1
+  mu_ab = tau[2]
+  prop_tau = norm_it*sigma + mu_ab
+  n = 39
+  # ratio = acceptRatio(n, yt, prop_tau, tau[t])
+  ratio = logAccRatio(39, yt, prop_tau, tau[t])
+  # if (runif(1) < min(c(1,ratio))){
+  if (unif < min(c(1,ratio))){
     return(list(tau=prop_tau, accepted=1))
   }
   else{return(list(tau=tau[t], accepted=0))}
 }
 
+mhLast = function(tau, sigma, yt, t, norm_it, unif){
+  # Function to take the last MH step, i.e., for t=366
+  mu_ab = tau[365]
+  prop_tau = norm_it*sigma + mu_ab
+  # ratio = acceptRatio(n, yt, prop_tau, tau[t])
+  ratio = logAccRatio(39, yt, prop_tau, tau[t])
+  if (unif < min(c(1,ratio))){
+    return(list(tau=prop_tau, accepted=1))
+  }
+  else{return(list(tau=tau[t], accepted=0))}
+}
 
-mcmcIndivid = function(N, dt, sigma0=0.1){
+mcmcIndivid = function(N, dt, sigma0=0.05){
   # Allocate memory
   Ttot = 366
   tau = matrix(NA, nrow=N, ncol = Ttot)
   sigma = numeric(length = N)
   tau_i = numeric(length = Ttot)
   normMat = matrix(rep(rnorm(Ttot), N), nrow = N, ncol=Ttot)
-  normVec = normMat[1,]
+  # unifMat = matrix(rep(runif(Ttot), N), nrow=N, ncol=Ttot)
+  unifMat = matrix(rep(log(runif(Ttot)), N), nrow=N, ncol=Ttot) # log uniform
   
   # Find init vals
   tau[1,] = rnorm(Ttot) # init tau drawn from normal distr.
-  # tau[1,] = runif(366, -100, 100) # init tau drawn from uniform distr.
   sigma[1] = sigma0
-  
-  # Make Q matrix
-  Q=matrix(0, nrow = Ttot, ncol = Ttot)
-  diag(Q)=2
-  Q[c(1, length(Q))]=1
-  Q[abs(row(Q) - col(Q)) == 1] <- -1
   
   # Run mcmc for N iterations
   accepted = 0
   for (i in 2:N){
     tau_i = tau[i-1,]
-    sigma_i = sigma[i-1]
-    for (t in 1:Ttot){
-      # rtemp= mhRW(tau_i, sigma_i, dt$n.rain[t], t)
-      rtemp= mhRW(tau_i, sqrt(sigma_i), dt$n.rain[t], t, normVec[t])
-      tau[i,t] = rtemp$tau
-      accepted = accepted + rtemp$accepted
+    sigma_i = sqrt(sigma[i-1])
+    
+    # Take first MH step for t=1
+    mhStep = mhFirst(tau_i, sigma_i, dt$n.rain[1], 1, normMat[i,1], unifMat[i,1])
+    tau_i[1] = mhStep$tau
+    # tau[i,1] = mhStep$tau
+    accepted = accepted + mhStep$accepted
+    
+    # Perform MH steps for 1<t<366
+    for (t in 2:(Ttot-1)){
+      mu_ab = 1/2 * (tau_i[t-1] + tau_i[t+1])
+      prop_tau = normMat[i,t]*sigma_i/2 + mu_ab
+      # ratio = acceptRatio(n.years[t], n.rain[t], prop_tau, tau_i[t])
+      ratio = logAccRatio(n.years[t], n.rain[t], prop_tau, tau_i[t])
+      # if (runif(1) < min(c(1,ratio))){
+      if (unifMat[i,t] < min(c(1,ratio))){
+        # tau[i,t] = prop_tau
+        tau_i[t] = prop_tau
+        accepted = accepted + 1
+      }
+      # else{tau[i,t] = tau_i[t]}
     }
-    normVec = normMat[i,]
+    
+    # Take last MH step for t=366
+    mhStep = mhLast(tau_i, sigma_i, dt$n.rain[366], 1, normMat[i,366], unifMat[i,366])
+    tau_i[366] = mhStep$tau
+    tau[i,] = tau_i
+    accepted = accepted + mhStep$accepted
+    
     # Squared diff. of tau vec.
-    tQt = sum((tau[i,-Ttot] - tau[i,-1])^2) # this sim tau vals.
-    # tQt = sum((tau[i-1,-366] - tau[i-2,-1])^2) # prev sim tau vals.
+    # tQt = sum((tau[i,-Ttot] - tau[i,-1])^2) # this sim tau vals.
+    tQt = sum(diff(tau[i,])^2) # this sim tau vals.
     
     # Gibbs step (Draw from IG)
-    sigma[i] = 1/rgamma(1, 2 + (Ttot-1)/2, 0.05 + 0.5*tQt) # Gibbs inline
-
-    # if (i%%(N/10)==0){
-    #   print(i/N*100)
-    #   print(accepted/(i*366))
-    # }
+    sigma[i] = 1/rgamma(1, shape=2 + (Ttot-1)/2, scale=0.05 + 0.5*tQt) # Gibbs inline
+    
+    setTxtProgressBar(pb,i)
   }
+  close(pb)
   return(list(tau=tau, sigma=sigma, accProb = accepted/(N*Ttot)))
 }
 ```
 
-```{r 1runMCMC, options}
+```{r 1e.Run, options}
+a=0
+Q = triDiag(diagonal = 2, upper = -1, lower = -1, nrow = 366)
+Q[1,1] = 1 
+Q[366,366] = 1
+
 set.seed(321)
-N = 50000
+N = 50000 
+pb = txtProgressBar(min = 0, max = N, initial = 0) 
 ptm = proc.time()
 results = mcmcIndivid(N, rain)
 time = proc.time() - ptm
+time
 ```
-
-```{r 1eDisplay, fig.width=7, fig.height=8, out.width="80%", fig.cap="Traceplot, autocorrelation and histogram plots for $\\pi(\\tau_1), \\pi(\\tau_{201})$ and $\\pi(\\tau_{366})$ from top to bottom."}
-CImean = function(p, col="cyan3"){
+In the printout we see that computation time was `r time[3]`. The following chunk contain functions that compute some sought values and make desired figures.
+```{r 1e.plotAndResultFncs, options}
+CImean = function(p){
+  # Computes mean and upper,lower quantiles of vector.
   c(mean=mean(p), quantile(p, probs = c(0.025,0.975)))
 }
 
 plotTAH = function(p, hcol = "cyan3", xlab = "", ylab = ""){
   # Plots trace, autocorr and hist of probs
+  l = quantile(p, probs = 0.025)
+  u = quantile(p, probs = 0.975)
   plot(p, type="l", xlab = "Iterations", ylab="Probability")
   abline(h=mean(p), col="red")
+  abline(v=3000, lty=2, col="gray")
   acf(p, main="")
-  hist(p, nclass=40, prob=T, main="", xlab="Probability")
-  abline(v = quantile(p, probs = 0.025), col=hcol)
-  abline(v = quantile(p, probs = 0.975), col=hcol)
+  hist(p, nclass=200, prob=T, main="", xlab="Probability", xlim=c(l-0.01,u+0.01))
+  abline(v = l, col=hcol)
+  abline(v = u, col=hcol)
 }
-
-p1 = link(results$tau[,1])
-p201 = link(results$tau[,201])
-p366 = link(results$tau[,366])
-
-par(mfrow=c(3,3))
-plotTAH(p1)
-plotTAH(p201)
-plotTAH(p366)
+pSeq = apply(results$tau, 2, link)
 ```
-The vertical red line in the trace plots to the left in Figure \@ref(fig:1eDisplay) show the mean of $\pi(\tau_t)$ over all $50'000$ iterations, for $t = 1, 201, 366$. The horizontal blue lines in the histogram plot show the $95\%$ credible intervals for $\pi(\tau_t)$. The traceplot bares resemblance to that of a random walk for all $\tau_t$. We notice an exponential decrease in autocorrelation and the histogram show that $\tau_{201}$ seem normally distributed and $\tau_1$ and $\tau_{366}$ has a slight right skew.
+
+```{r 1eDisplay, fig.width=8, fig.height=8, out.width="90%", fig.cap="Traceplot, autocorrelation and histogram plots for $\\pi(\\tau_1), \\pi(\\tau_{201})$ and $\\pi(\\tau_{366})$ from top to bottom."}
+par(mfrow=c(3,3))
+plotTAH(pSeq[,1])
+plotTAH(pSeq[,201])
+plotTAH(pSeq[,366])
+```
+The vertical red line in the trace plots to the left in Figure \@ref(fig:1eDisplay) show the mean of $\pi(\tau_t)$ over all $50000$ iterations, for $t = 1, 201, 366$. The horizontal blue line is at the $3000^{nd}$ iteration. The vertical blue lines in the histogram plot show the $95\%$ credible intervals for $\pi(\tau_t)$. The traceplot bares resemblance to that of a random walk for all $\tau_t$ after approximately the $3000^{nd}$ iteration. We notice a decrease in autocorrelation and the histogram show that $\pi(\tau_t)$ seem normally distributed.
+
+```{r 1eburn, fig.cap="mean"}
+pSeqCI = apply(pSeq, 2, CImean) # Compute mean and credibility interval
+
+# Burn
+burn=3000
+resultsB = results
+resultsB$tau = results$tau[burn:N,]
+resultsB$sigma = results$sigma[burn:N]
+pSeqB = pSeq[burn:N,]
+pSeqCIB = apply(pSeqB, 2, CImean) # Compute mean and credibility interval
+ciAndMean = rbind((pSeqCI[,1]), (pSeqCIB[,1]), 
+                  (pSeqCI[,201]), (pSeqCIB[,201]),
+                  (pSeqCI[,366]), (pSeqCIB[,366]), 
+                  CImean(results$sigma), CImean(resultsB$sigma))
+rownames(ciAndMean) = c("1","1 B", "201","201 B", "366","366 B", "sigma", "sigma B")
+# knitr::kable(round(ciAndMean,4), caption = "mean and stuff")
+knitr::kable(round(ciAndMean,4), caption = "mean and stuff")
+```
+Burning some of the early iterations, here the first `r burn`, has some impact, but nothing major due to the fast convergence of MCMC sampler, as we can see in Table [1](tab:1eburn).
 ```{r 1eSigmaRes, fig.width=5, fig.height=8, out.width="80%"}
 par(mfrow=c(3,1))
 yl = expression(sigma_u^2)
@@ -297,17 +387,255 @@ acf(results$sigma)
 hist(results$sigma, nclass=100, prob=T)
 ```
 
-```{r makeTitle, options}
-ciAndMean = rbind(CImean(p1[1:N]),
-                  CImean(p201[1:N]),
-                  CImean(p366[1:N]))
-rownames(ciAndMean) = c(1, 201, 366)
-ciAndMean
+```{r 1eEvolution, fig.width=6, fig.height=5, out.width="80%", fig.cap="Make cap"}
+ylim = c(min(rain$n.rain/rain$n.years), max=max(pSeq[1,]))
+par(mfrow=c(1,1))
+plot(rain$day,pSeq[1,], type = "l", 
+     ylab=expression(pi), xlab="Day",
+     ylim = ylim, col="gray")
+lines(rain$day,pSeq[N/2,], type = "l", 
+     ylim = ylim, col="cyan3")
+lines(rain$day,pSeq[N,], 
+      # type = "l",ylab=expression(paste(pi,"(",tau[366],")")),
+     ylim = ylim, col = "blue", lty=1)
+legend(x="topright", legend = c("Initial values", "Halfway", "Last iteration"), lty = c(1,1,1),
+       col=c("gray", "cyan3", "blue"), bg="transparent")
 ```
 
-```{r 1eEvolution, fig.width=5, fig.height=8, out.width="80%"}
-par(mfrow=c(3,1))
-plot(link(results$tau[1,]), type = "l")
-plot(link(results$tau[N/2,]), type = "l")
-plot(link(results$tau[N,]), type = "l")
+The initial values of $\boldsymbol{\pi}$ show no resemblance to the Tokyo rainfall dataset probabilities in Figure \@ref(fig:1eEvolution)
+
+
+```{r 1eggMean, fig.cap="The black line is the mean of all predicted probabilities $\\pi$ excluding the burned predictions. The dashed green and blue lines are last iterations MCMC samples and the data probabilities, respectively."}
+gg1e.df = data.frame(probPreds = pSeq[N,], l = pSeqCI[2, ], u = pSeqCI[3,],
+                     meanPreds = pSeqCI[1,], probsReal = n.rain/n.years, 
+                     day = day)
+ggplot(data = gg1e.df, aes(x = day, y = probPreds)) + 
+  # geom_ribbon(mapping = aes(ymin = l,ymax = u, fill = "CI"), alpha = 0.2) +
+  geom_line(aes(color = "tau", linetype="tau")) +
+  geom_line(aes(y = meanPreds, color = "mean", linetype="mean")) +
+  geom_point(aes(y = probsReal, color = "n.rain/n.years",
+                size="n.rain/n.years"), alpha = 0.3) + 
+  scale_linetype_manual(
+    name=" ",
+    breaks = c("tau", "mean", "n.rain/n.years"),
+    values = c(2, 1, NA),
+    labels=expression(pi*(tau),'Mean','Data probability')
+    # breaks = c("tau", "mean"),
+    # values = c(2, 1),
+    # labels=expression(pi*(tau),'Mean')
+    # values = c("tau"=1, "mean"=2, "n.rain/n.years"=2)
+  ) +
+  scale_size_manual(
+    name=" ",
+    breaks = c("tau", "mean", "n.rain/n.years"),
+    values = c(NA, NA, 0.1),
+    labels=expression(pi*(tau),'Mean','Data probability')
+    ) +
+  scale_color_manual(
+    name=" ",
+    # breaks = c("tau", "mean", "n.rain/n.years"),
+    values=c("tau"="green", "mean"="black","n.rain/n.years"="blue"),
+    # values=c("black", "green","pink"),
+    labels=expression(pi*(tau),'Mean','Data probability')
+  ) +
+  labs(y="Probabilities", x="Day") +
+  theme_minimal()
 ```
+
+```{r 1e.ggMean,  include=F, eval=F,fig.cap="The black line is the mean of all predicted probabilities $\\pi$ excluding the burned predictions. The dashed green and blue lines are last iterations MCMC samples and the data probabilities, respectively."}
+# gg1e.df = data.frame(meanPreds = pSeqCI[1,], probsReal = n.rain/n.years, 
+#                      day = day)
+# gg1e.df.melt = reshape2::melt(gg1e.df,id.vars='day')
+# ggplot(data = gg1e.df.melt, 
+#        aes(x = day, y=value, 
+#            colour=variable, linetype=variable, shape=variable)) + 
+#   geom_line(data=subset(gg1e.df.melt, variable=="meanPreds")) +
+#   geom_point(data=subset(gg1e.df.melt, variable=="probsReal")) + 
+#   scale_linetype_manual(
+#     # breaks = c("meanPreds"),
+#     values = c(1,1)) +
+#   scale_shape_manual(values = c(1,1)) +
+#   # scale_shape_manual(
+#   #   name=" ",
+#   #   breaks = c("meanPreds", "probsReal"),
+#   #   labels=expression('Mean','Data probability'),
+#   #   values = c(NA, 1)
+#   #   ) +
+#   # scale_linetype_manual(
+#   #   name=" ",
+#   #   breaks = c("meanPreds", "probsReal"),
+#   #   labels=expression('Mean','Data probability'),
+#   #   values = c(NA, 1)
+#   # ) +
+#   labs(y="Probabilities", x="Day") +
+#   theme_minimal()
+```
+
+## f) Blocking implementation
+Now we will go from sequentially updating $\tau_t$ to perform block updates for each iteration. We will start by showing what mathematical implications that comes from blocking before we show the implementation and discuss the results. Rather than updating individual $\tau_t$ parameters we will use a conditional prior proposal involving $P( \boldsymbol{\tau}_{(a,b)}| \boldsymbol{\tau}_{-(a,b)})$, where $\boldsymbol{\tau}_{(a,b)} = (\tau_a,...,\tau_b)$ for interval length $M=b-a$. For intervals of length $M>1$ we can simplify the acceptance probability as we did in section \@ref(sec:1e), only now 
+
+\begin{equation}(\#eq:1faccBlock)
+  \frac{P(\boldsymbol{y}_\mathcal{I}| \boldsymbol{\tau}'_ \mathcal{I})}{P(\boldsymbol{y}_\mathcal{I}| \boldsymbol{\tau}_ \mathcal{I})}
+  =
+  \exp\left\{ \sum_{\mathcal{I}}y_i(\tau'_i - \tau_i) + n_i \ln \left( \frac{1+e^{\tau_i}}{1+e^{\tau'_i}} \right) \right\},
+\end{equation}
+
+where $\mathcal{I}=(a,b)$. The conditional mean and precision used to draw the proposed values $\boldsymbol{\tau}_ \mathcal{I}$ are given by
+$$
+\begin{aligned}
+  &\boldsymbol{\mu}_{ \mathcal{I} \mid \mathcal{-I}} = \boldsymbol{\mu}_{\mathcal{I}} - \mathbf{Q}_{\mathcal{I}, \mathcal{I}}^{-1} \mathbf{Q}_{\mathcal{I},\mathcal{-I}} \left(\boldsymbol{\tau}_{\mathcal{-I}}-\boldsymbol{\mu}_{\mathcal{-I}}\right) 
+  = -\mathbf{Q}_{\mathcal{I},\mathcal{I}}^{-1} \mathbf{Q}_{\mathcal{I},\mathcal{-I}}\boldsymbol{\tau}_{\mathcal{-I}}
+  \\
+  &\mathbf{Q}_{\mathcal{I} \mid \mathcal{-I}}=\mathbf{Q}_{\mathcal{I},\mathcal{I}}.
+\end{aligned}
+$$
+Assuming $1<M<T-2$, we get three different types of precision matrices which can be precomputated. Namely, one when the first day is included, the second where neither the first nor the last day is included, and the third where the last day is included in the set of days $\mathcal{i}$. There are also only three different precision matrices for one iteration for the same day sets mentioned which also can be precomputated for each iteration. \textcolor{red}{precomputed or precomputated?}. The shape and size of said deflectors of the $\mathbf{Q}$ matrix will not be discussed further, but can be computed from the `Qprecomp` function seen in the chunk below. The chunk also include the function for computing the acceptance ratio from Equation \@ref(eq:1faccBlock) and the implementation of the MCMC sampler.
+
+```{r 1f.functions, options}
+acceptRatioBlock = function(I, tauProp, tauPrev){
+  return(exp(sum(n.rain[I]*(tauProp - tauPrev)) + 
+             sum(rain$n.years[I]*(log(1+ exp(tauPrev)) -
+                                  log(1+exp(tauProp)))
+                 )
+             )
+         )
+}
+
+Qprecomp = function(M, Ttot=366){
+  ## Make intervals I
+  n.sets = ceiling(Ttot/M)
+  I = matrix(1:(M*(n.sets-1)), ncol = n.sets-1, byrow=F)
+  Ires = (I[M,n.sets-1]+1):Ttot
+  
+  # Make Q
+  Q = triDiag(diagonal = 2, upper = -1, lower = -1, nrow = Ttot)
+  Q[1,1] = 1 
+  Q[Ttot,Ttot] = 1
+  # Find the three Q_AA
+  Qaa1 = Q[1:M,1:M]
+  Qaa2 = Q[2:(M+1), 2:(M+1)]
+  Qaa3 = Q[Ires, Ires]
+  Qaa1inv = solve(Qaa1)
+  Qaa2inv = solve(Qaa2)
+  Qaa3inv = solve(Qaa3)
+  
+  Qmult = list(Qmult1 = -Qaa1inv %*% Q[1:M, -(1:M)])
+  for (i in 2:(n.sets-1)){
+    Qmult = append(Qmult, list(-Qaa2inv %*% Q[I[,i], -I[,i]]))
+  }
+  Qmult = append(Qmult, list(-Qaa3inv %*% Q[Ires, -Ires]))
+  names(Qmult) = sprintf("Qmult%d", 1:(n.sets))
+  
+  return(list(Qaa1inv = Qaa1inv, Qaa2inv = Qaa2inv, Qaa3inv = Qaa3inv,
+              Qmult = Qmult,
+              n.sets = n.sets, I = I, Ires = Ires))
+}
+
+mcmcBlock = function(N, M=10, sigma0=0.1, tau0=rnorm(366)){
+  # Allocate memory
+  tau = matrix(NA, nrow = N, ncol = Ttot) # (N x T)
+  sigma = numeric(length = N)
+  # Assign initial values
+  tau[1,] = tau0
+  sigma[1] = sigma0
+  # Assign Q matrices for easier access
+  Qm = Q$Qmult # precomputed -QaaInverse * Qab
+  n.sets = Q$n.sets
+  Imat = Q$I # (M x (n.sets-1))
+  Ires = Q$Ires
+  
+  # Simulate N times
+  accepted = 0
+  for (i in 2:N){
+    # Perform first MH block step using upper left sub matrices of Q
+    mhBlock = mhBlockStep(tau[i-1,], Imat[,1], sigma[i-1]*Q$Qaa1inv, Qm$Qmult1)
+    tau[i, Imat[,1]] = mhBlock$tau
+    accepted = accepted + mhBlock$accepted
+    
+    # Precompute sigma_u^2 * Q_AA^-1 for all blocks where 1<t<366 
+    Sigma.mid = sigma[i-1]*Q$Qaa2inv
+    # Perform MH block steps for days 1<t<366
+    for (t in 2:(n.sets-1)){
+      mhBlock = mhBlockStep(tau[i-1,], Imat[,t], Sigma.mid, Qm[[t]])
+      tau[i, Imat[,t]] = mhBlock$tau
+      accepted = accepted + mhBlock$accepted
+    }
+    
+    # Perform last MH block step using lower left sub matrices of Q
+    mhBlock.last = mhBlockStep(tau[i-1,], Ires, sigma[i-1]*Q$Qaa3inv, Qm[[n.sets]])
+    tau[i, Ires] = mhBlock.last$tau
+    accepted = accepted + mhBlock.last$accepted
+    
+    # Perform Gibbs step for sigma_u^2
+    tQt = sum((diff(tau[i,]))^2) 
+    sigma[i] = 1/rgamma(1, shape=2 + (Ttot-1)/2, scale=0.05 + 0.5*tQt)
+    
+    # Show progress
+    # if (i%%(N/10)==0){
+    #   print(i/N*100)
+    #   print(accepted/(i*366))
+    # }
+    setTxtProgressBar(pb,i)
+  }
+  close(pb)
+  return(list(tau = tau, sigma = sigma))
+}
+
+mhBlockStep = function(tauPrev, I, Sigma, Qm.I){
+  # Inputs
+  # tauPrev : Previous sim tau values
+  # I       : Indices for this block
+  # Sigma   : sigma_u^2 * Q_AA^-1
+  # Qm.I    : -Q_AA^-1 x Q_AB
+  
+  mu.ab = Qm.I %*% tauPrev[-I]
+  tauProp = mvrnorm(n=1, mu=mu.ab, Sigma=Sigma)
+  ratio = acceptRatioBlock(I, tauProp, tauPrev[I])
+  # Random walk 1
+  if (runif(1) < min(c(1,ratio))){
+    return(list(tau=tauProp, accepted=length(I)))
+  }
+  else{return(list(tau=tauPrev[I], accepted=0))}
+}
+```
+
+```{r run, options}
+M = 10
+set.seed(321)
+ptm = proc.time()
+# profvis({results = mcmcBlock(N, rain, M)}) # For profiling
+resultsBlock = mcmcBlock(N, M)
+proc.time() - ptm
+```
+
+```{r 1fTuneM, options}
+N = 5000
+
+Ttot = 366
+
+
+
+Mlist = c(2,5,10,20)
+resultList = list()
+times = c()
+
+tau0 = rnorm(366)
+
+for (i in 1:length(Mlist)){
+  pb = txtProgressBar(min = 0, max = N, initial = 0) 
+  Q = Qprecomp(Mlist[i], Ttot)
+  start = proc.time()[3]
+  resultList = append(resultList, mcmcBlock(N,Mlist[i], tau0 = tau0))
+  time = c(time, proc.time()[3]-start)
+}
+time
+
+```
+
+```{r 1fsomeResults, options}
+pSeqBlock2 = apply(resultList[[1]], 2, link)
+pSeqBlock5 = apply(resultList[[3]], 2, link)
+pSeqBlock10 = apply(resultList[[5]], 2, link)
+pSeqBlock20 = apply(resultList[[7]], 2, link)
+```
+
