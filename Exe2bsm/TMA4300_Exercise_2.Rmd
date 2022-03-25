@@ -814,5 +814,300 @@ ggplot(gg1f.df, aes(x = day)) +
 ```
 
 
+```{r}
+library("INLA")
+library("ggplot2")
+```
 
+# Problem 2
+
+In this problem we will use INLA to fit the same model as in the previous problem. 
+
+## a) INLA model 1
+
+
+
+To be able to compare the model with the previous Markov chain, we need to use the same priors as in Problem 1. In this model the intercept term is removed so we don't include a prior on this term. We do however need to include a prior for $\sigma_u^2$.
+We have
+$$
+\tau_t \sim \tau_{t-1}+u_t
+$$
+for $u_t \sim N(0, \sigma_u^2).$ 
+In INLA priors are placed on the log precision rather than the variance. The precision is  $1/\sigma_u^2$, and we place the prior on the hyperparameter
+$$
+\theta=\log \left( \frac{1}{\sigma_u^2} \right).
+$$
+We know from problem 1 that $\sigma_u^2$ has a inverse Gamma distribution. This means that $\sigma_u^2 \sim \text{Gamma}(\alpha, \beta)$ and $\theta \sim \text{loggamma}(\alpha, \beta).$ 
+
+We therefore place this prior on $\theta$ and use $\alpha=2$ and $\beta=0.05.$
+
+```{r}
+#Prior placed on hyperparameter
+alpha=2
+beta=0.05
+hyper=list(prec=list(prior="loggamma", param=c(alpha,beta)))
+```
+In the chunk below a function that fits a INLA model for given control.inla inputs is made. The function also returns the computation time using `` proc.time()[3].
+
+```{r}
+INLA_fit<- function(con.inla)
+{
+  time_before=proc.time()[3]
+  mod <- inla(n.rain ~ -1 + f(day, model="rw1", constr=FALSE, hyper=hyper),
+  data=rain, Ntrials=n.years, control.compute=list(config = TRUE),
+  family="binomial", verbose=TRUE, control.inla=con.inla)
+  #computation time
+  time=proc.time()[3]-time_before
+  return(list(mod=mod,time=time))
+}
+```
+
+We also make a function that plots the development of the means of the model with a 95 % credible interval. 
+
+```{r}
+INLA_plot <- function(mod)
+{
+  lower=mod$summary.fitted.values$`0.025quant`
+   # upper bound
+  upper=mod$summary.fitted.values$`0.975quant`
+  #Plot means with 95 % credible interval
+  plot<-ggplot(data=as.data.frame(mod$summary.fitted.values$mean), mapping=aes(x=1:366,y=mod$summary.fitted.values$mean))+
+    geom_line(col="red")+
+    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.1)+
+    xlab("Day")+ylab("predicted values")
+  return(plot)
+}
+```
+
+The function below plots the predictions of $\pi$ from two models together. 
+```{r}
+INLA_plot_2 <-function(mod1,mod2)
+{
+  label_mod1=paste("Predictions from ", deparse(substitute(mod1)))
+  label_mod2=paste("Predictions from ", deparse(substitute(mod2)))
+  ggplot()+
+    geom_line(data=as.data.frame(mod1$summary.fitted.values$mean), mapping=aes(x=1:366,y=mod1$summary.fitted.values$mean, color=label_mod1))+
+  geom_line(data=as.data.frame(mod2$summary.fitted.values$mean), mapping=aes(x=1:366,y=mod2$summary.fitted.values$mean, color=label_mod2), linetype=2)+
+    labs(color="Models")+xlab("Day")+ylab("Predicted values of "~pi)
+}
+```
+
+We fit a model using simplified Laplace as the strategy for approximations and ccd as the strategy for integration. 
+
+```{r}
+# control.inla input
+control.inla = list(strategy="simplified.laplace", int.strategy="ccd")
+fit1<-INLA_fit(control.inla)
+mod1<-fit1$mod
+time1<-fit1$time
+```
+
+
+
+We look at predictions and uncertainties of INLA and plot the development of the means with a 95 % credible interval for the fitted values.
+```{r plot-mod1, fig.cap="Plot of mean of fitted $\\pi$-values of model with credible interval"}
+INLA_plot(mod1)
+```
+We look specifically at $\pi(\tau_1), \pi(\tau_{201})$ and $\pi(\tau_{366}).$
+
+```{r INLA}
+#pi(tau_1)
+mod1$summary.fitted.values[1,]
+mod1$summary.fitted.values[201,]
+mod1$summary.fitted.values[366,]
+```
+
+By looking at the results from the chunk above and compare it to table [3](tab:1fburnFull), we can see that we get similar results to problem 1 which is as expected. 
+We also plot the mean values from problem 1e together with the predcited mean values from INLA.
+
+```{r, fig.cap="Comparison of INLA and model in 1e"}
+ggplot()+
+  geom_line(data=as.data.frame(mod1$summary.fitted.values$mean), mapping=aes(x=1:366,y=mod1$summary.fitted.values$mean, color="Fitted values from INLA"))+
+  geom_line(data=gg1e.df, aes(x=1:366,y = meanPreds, color = "Fitted values from 1e"))+xlab("Day")+ylab("Mean of "~pi)
+```
+
+here we see pretty different results.
+We also plot the predicted means for $\pi$ for each day together with the mean values from problem 1f. 
+
+```{r, fig.cap="Comparison of INLA and model in 1f"}
+ggplot()+
+  geom_line(data=as.data.frame(mod1$summary.fitted.values$mean), mapping=aes(x=1:366,y=mod1$summary.fitted.values$mean, color="Fitted values from INLA"))+
+  geom_line(data=gg1f.df,aes(x=1:366,y=mpB, color="Fitted values in 1f"))+xlab("Day")+ylab("Mean of "~pi)
+```
+
+We see that we get very similar results as expected. 
+The computational time according to the proc.time()[3] is `r as.numeric(time1)`. This is much faster than the algorithms from problem 1. 
+
+## b) Robustness of the results to different control.inla inputs
+
+We want to look at how robust the results are to the two control.inputs. The strategy we used for integration is ccd. The ccd integration is a less costly alternative compared to the grid strategy when the dimensions of the hyperparameter is large. The grid strategy often gives the most accurate result, but the number of points grow exponentially with the dimension of $\theta.$ The ccd approach locates fewer points around the mode and is therefore less computationally expensive. Other options for integration strategies are 'eb', 'user' and 'user.std'. The 'auto' option which is the default integration strategy corresponds with the grid approach if the dimension of $\theta$ 2 or lower, and ccd if the dimension of $\theta$ is over 2. We have that the dimension of $\theta$ is 1, so the auto option will correspond with 'grid'. 
+
+The default option for strategy is the simplified Laplace option which is the option we have used here. Another option is the Gaussian approximation which is easy to apply and cheap to compute. However, there could be errors in location or due to skeweness. Simplified Laplace can correct these errors and is computationally faster than the Laplace approximation.
+
+We fit a couple of different models with different strategies and compare the results. We start by fitting some models with different integration strategies and the 'simplified.laplace' strategy for approximations. The first integration option we use is 'grid'.
+
+```{r}
+#control.inla input
+control.inla = list(strategy="simplified.laplace", int.strategy="grid")
+#Fit model
+fit2<-INLA_fit(control.inla)
+mod2<-fit2$mod
+time2<-fit2$time
+```
+
+We plot the predictions together with the predictions from the first model.
+
+```{r plot-mod2, fig.cap="Plot of mean of fitted values of the model with strategy=simplified.laplace and int.strategy=grid compared to plot of model 1"}
+INLA_plot_2(mod1,mod2)
+```
+
+As seen in figure \@ref(fig:plot-mod2), the results from the two models are very similar. The computational time we get by using proc.time()[3] is `r as.numeric(time2)`, which is barely higher than the first model. 
+
+The next integration strategy considered is the 'eb' strategy. 
+
+```{r}
+control.inla = list(strategy="simplified.laplace", int.strategy="eb")
+#Time before
+fit3<-INLA_fit(control.inla)
+mod3<-fit3$mod
+time3<-fit3$time
+```
+
+We plot it together with the first model
+```{r plot-mod3, fig.cap="Plot of mean of fitted values of the model with strategy=simplified.laplace and int.strategy=eb compared to plot of model 1"}
+INLA_plot_2(mod1,mod3)
+```
+
+Plot \@ref(fig:plot-mod3) shows that this model yields very similar predictions as the two other models.
+The computation time is here `r as.numeric(time3)`, which is about the same as the time when using 'grid'. The results for the different integration strategies are very similar. We now look at different strategies for approximation and use ccd as the method for integration strategy. We start by trying the Gaussian approximation.
+
+```{r}
+control.inla = list(strategy="gaussian", int.strategy="ccd")
+fit4<-INLA_fit(control.inla)
+mod4<-fit4$mod
+time4<-fit4$time
+```
+
+```{r plot-mod4, fig.cap="Plot of mean of fitted values of the model with strategy=gaussian and int.strategy=ccd compared to plot of model 1"}
+INLA_plot_2(mod1,mod4)
+```
+
+As seen in \@ref(fig:plot-mod4), we yet again get very similar results. The computation time is `r as.numeric(time4)`. Now, we use the Laplace approximation. 
+
+```{r}
+control.inla = list(strategy="laplace", int.strategy="ccd")
+fit5<-INLA_fit(control.inla)
+mod5<-fit5$mod
+time5<-fit5$time
+```
+
+```{r plot-mod5, fig.cap="Plot of fitted values with strategy=laplace and int.strategy=ccd compared to model 1"}
+INLA_plot_2(mod1,mod5)
+```
+
+Figure \@ref(fig:plot-mod5) shows that for the first days the predictions are very similar. However, from about day 100 and onwards we can see significant differences between the models. The running time is `r as.numeric(time5)`, which is more compared to the other models.
+We also try the Laplace approach with the grid approximation for integration. 
+
+```{r}
+control.inla = list(strategy="laplace", int.strategy="grid")
+fit6<-INLA_fit(control.inla)
+mod6<-fit6$mod
+time6<-fit6$time
+```
+We compare this to the previous model
+```{r plot-mod6, fig.cap="Plot of fitted values with strategy=laplace and int.strategy=grid compared to the values when using strategy=laplace and int.strategy=ccd which is model 5"}
+INLA_plot_2(mod5,mod6)
+```
+
+The predictions are very similar, but we see some differences from about day 100 to day 150. The computation time is `r as.numeric(time6)`
+
+The Laplace approximation strategy gives different predictions compared to the predictions we get when using other strategies. At last, we look at the 'adaptive' strategy and compare it to our original model.
+
+```{r}
+control.inla = list(strategy="adaptive", int.strategy="ccd")
+fit7<-INLA_fit(control.inla)
+mod7<-fit7$mod
+time7<-fit7$time
+```
+We compare the predictions of this model to the predictions of the first model.
+The running time for fitting this model is `r as.numeric(time7)`.
+
+The different inputs for control.inla mostly yields very similar results. However, we get different results when using the Laplace approximation as strategy. This imply that the results are not that robust for the different control.inla inputs we use. We also notice a longer running time when using Laplace for approximations. The running time is also larger when using `grid` compared to the other integrartion strategies. All these running times are all very low compared to our previous results from problem 1.  
+
+## c) INLA model 2
+
+We fit a new model that is fitted with the code below. We refer to this model as model 8. 
+
+```{r}
+alpha=2
+beta=0.05
+hyper=list(theta=list(prior="loggamma", param=c(alpha,beta)))
+control.inla=list(strategy="simplified.laplace", int.strategy="ccd")
+
+mod8 <- inla(n.rain ~ f(day, model="rw1", hyper=hyper,constr=TRUE),
+data=rain, Ntrials=n.years, control.compute=list(config = TRUE),
+family="binomial", verbose=TRUE, control.inla=control.inla)
+```
+
+The model in problem 2a is has a response given by equation \@ref(eq:1response).
+The first mathematical difference of the new model compared to the first model is that the intercept is not removed. This means that the response is given by
+
+$$
+y_t | \eta_t \sim \text{Bin}(n_t, \pi(\eta_t)), \ \ \pi(\eta_t)=\frac{\exp(\eta_t)}{1+\exp(\eta_t)}=\frac{1}{1+\exp(-\eta_t)},
+$$
+where $\eta_t=\beta_0+\tau_t,$ and $\beta_0$ is the intercept. We use the default prior on the intercept which is a Gaussian distribution with the mean and precision equal to zero. This is an improper prior where the variance is infinite. The prior on $\theta$ is the same as in the model in 2a, that is a $\text{Loggamma}(\alpha=2, \beta=0.05)-$ distribution. 
+Unlike the previous model, this model uses the argument `constr=TRUE`.
+This means that there is a sum-to-zero constraint, and the sum of $(\tau_1,..,\tau_n)$ is given by
+$$
+\sum_{i=1}^{n} \tau_i=0.
+$$
+In the model 8, we have that $\eta_t$ is given by 
+$$
+\eta_t=\log \left (\frac{\pi (\eta_t)}{1- \pi (\eta_t)} \right) \implies \tau_t=\log \left (\frac{\pi (\eta_t)}{1- \pi (\eta_t)} \right)-\alpha
+$$
+In the model in 2a, we have
+
+$$
+\tau_t=\log \left (\frac{\pi (\tau_t)}{1- \pi (\tau_t)} \right) .
+$$
+Below, we plot the estimated mean values of $\tau_t$ for $t=1,..,T$ for both models.
+
+```{r plot-2c-tau, fig.cap="$\\tau$-values of model 1 and 8"}
+tau_1=mod1$summary.random$day$mean
+tau_8=mod8$summary.random$day$mean
+label1=c("Model 1", "Model 8")
+ggplot()+
+  geom_line(data=as.data.frame(tau_1), mapping=aes(x=1:366, y=tau_1, color="Model 1"))+geom_line(data=as.data.frame(tau_8), mapping=aes(x=1:366, y=tau_8, color="model 8"))+xlab("Day")+ylab("estimated values of"~tau)+
+  labs(color="Models")
+```
+As seen in figure \@ref(fig:plot-2c-tau), the predicted $\tau$-values are different for the two models. The model 
+with the intercept and sum-to-zero constraint is supposed to have tau-values that sum to zero, and
+from the figure it seems like that this is the case. The model without the intercept does not have $\tau$-values that sums to zero as seen in the figure. Nevertehelss, we can see that the to graphs have what seems like identical shapes. 
+The predicted $\pi-$values of the models in 2a and 2c are also plotted together.
+```{r plot-2c, fig.cap="Predicted $\\pi$-values of the two models"}
+pi_1<-mod1$summary.fitted.values$mean
+pi<-mod8$summary.fitted.values$mean
+ggplot()+
+  geom_line(data=as.data.frame(pi_1), mapping=aes(x=1:366, y=pi_1, color="Model 1"), linetype=1)+geom_line(data=as.data.frame(pi), mapping=aes(x=1:366, y=pi, color="Model 8"), linetype=2)+xlab("Day")+ylab("Predicted values of "~pi)+
+  labs(color="Models")
+```
+
+From figure \@ref(fig:plot-2c) we can't see any significant differences. To further show how similar the predictions are, we can look at $\pi$ for day $1$, $201$ and $366$. 
+
+```{r}
+mod8$summary.fitted.values[1,]
+mod8$summary.fitted.values[201,]
+mod8$summary.fitted.values[366,]
+intercept<-mod8$summary.fixed$mean
+```
+
+
+These predictions are very similar, and the first differences can be seen in the fith decimal. The estimated intercept term is `r intercept `.
+
+
+The reason for the similar predictions is that the intercept term in the model with the constraint shifts down the values 
+such that the predicted values of $\pi$ are almost identical for the two models. The 
+intercept term makes the model as flexible as the model in 2a, and this lead to the 
+same fitted values. If this intercept term wasn’t included, the model would be 
+constrained by the sum-to zero constraint and we would get different predictions.  The fact that we get so similar predictions can also be shown more formally by looking at the marginal posterior distributions.
 
