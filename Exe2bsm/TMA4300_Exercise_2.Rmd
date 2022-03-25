@@ -39,13 +39,11 @@ library(MASS)
 library(Matrix)
 library(SoDA)
 library(profvis)
+library(reshape2)
 if (F){
   options(error = recover)
   options(error = NULL)
 }
-# if (getwd() == "C:/Users/chris/OneDrive/Documents/Fysmat/8 Semester V2022/Ber. Stat. Met/TMA4300"){
-#   setwd("./Exe2bsm")
-# }
 ```
 
 # Introduction
@@ -714,6 +712,7 @@ par(mfrow = c(length(Mlist), length(dToPlot)),
     mar=c(2,2,0.1,1))
 for (i in 1:length(Mlist)){
   xaxt = ifelse(i==length(Mlist), "s", "n")
+  # leg = ifelse(i%%3==1, expression(pi), "")
   for (t in dToPlot){
     plot(resultList[[paste0("tau",Mlist[i])]][,t], type="l",
          xlab="", ylab="", xaxt=xaxt)
@@ -794,45 +793,19 @@ rownames(ciAndMean) = c("1","1 B", "201","201 B", "366","366 B", "sigma", "sigma
 knitr::kable(round(ciAndMean,5), caption = "mean and stuff")
 ```
 
-```{r 1fggMean, fig.cap="The black line is the mean of all predicted probabilities $\\pi$ excluding the burned predictions. The dashed green and blue lines are last iterations MCMC samples and the data probabilities, respectively."}
-gg1f.df = data.frame(probPreds = pBlock[N,], l = pBlockCI[2, ], 
-                     u = pBlockCI[3,], meanPreds = pBlockCI[1,], 
-                     probsReal = n.rain/n.years, 
-                     day = day)
-ggplot(data = gg1f.df, aes(x = day, y = probPreds)) + 
-  geom_ribbon(mapping = aes(ymin = l,ymax = u, fill = "CI"), alpha = 0.2) +
-  geom_line(aes(color = "tau", linetype="tau")) +
-  geom_line(aes(y = meanPreds, color = "mean", linetype="mean")) +
-  geom_point(aes(y = probsReal, color = "n.rain/n.years",
-                size="n.rain/n.years"), alpha = 0.3) + 
-  scale_linetype_manual(
-    name=" ",
-    breaks = c("tau", "mean", "n.rain/n.years"),
-    values = c(2, 1, NA),
-    labels=expression(pi*(tau),'Mean','Data probability')
-    # breaks = c("tau", "mean"),
-    # values = c(2, 1),
-    # labels=expression(pi*(tau),'Mean')
-    # values = c("tau"=1, "mean"=2, "n.rain/n.years"=2)
-  ) +
-  scale_size_manual(
-    name=" ",
-    breaks = c("tau", "mean", "n.rain/n.years"),
-    values = c(NA, NA, 0.1),
-    labels=expression(pi*(tau),'Mean','Data probability')
-    ) +
-  scale_color_manual(
-    name=" ",
-    # breaks = c("tau", "mean", "n.rain/n.years"),
-    values=c("tau"="green", "mean"="black","n.rain/n.years"="blue"),
-    # values=c("black", "green","pink"),
-    labels=expression(pi*(tau),'Mean','Data probability')
-  ) +
-  labs(y="Probabilities", x="Day") +
+
+```{r 1fggMeanFull, fig.cap="The black line is the mean of all predicted probabilities $\\pi$ excluding the burned predictions. The dashed green and blue lines are last iterations MCMC samples and the data probabilities, respectively."}
+gg1f.df = data.frame(day = day, mp = pBlockCI[1,], pr = pReal, 
+                     l = pBlockCIB[2, ],u = pBlockCIB[3,], mpB = pBlockCIB[1,])
+ggplot(gg1f.df, aes(x = day)) +
+  geom_point(aes(y=pr, shape="mr"), colour="cyan3", size=1) +
+  geom_line(aes(y=mp, color="mp")) +
+  geom_line(aes(y=mpB, color="mpB")) +
+  scale_color_manual(name="", values = c("mp"="black", "mpB"="pink"),
+                        labels=c("Burned", "Unburned")) +
+  scale_shape_manual(name = " ", values=16, labels="Observations")+
+  labs(y = "Probabilities", x="Day") +
   theme_minimal()
 ```
-
-
-
 
 
