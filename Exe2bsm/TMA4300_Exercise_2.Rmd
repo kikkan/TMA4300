@@ -372,7 +372,7 @@ ciAndMean      = rbind((pSeqCI[,1]), (pSeqCIB[,1]),
                   CImean(results$sigma), CImean(resultsB$sigma))
 rownames(ciAndMean) = c("1","1 B", "201","201 B", "366","366 B", "sigma", "sigma B")
 
-knitr::kable(round(ciAndMean,4), caption = "mean and stuff")
+knitr::kable(round(ciAndMean,4), caption = "Mean and credibility intervals for $\\pi_t$, $t\\in\\{1,201,366\\}$.")
 ```
 Burning some of the early iterations, here the first `r burn`, has some impact, but nothing major due to the fast convergence of MCMC sampler, as we can see in Table [1](tab:1eburn).
 ```{r 1eSigmaRes, fig.width=5, fig.height=8, out.width="80%"}
@@ -812,5 +812,7 @@ ggplot(gg1f.df, aes(x = day)) +
   labs(y = "Probabilities", x="Day") +
   theme_minimal()
 ```
+
+
 
 
