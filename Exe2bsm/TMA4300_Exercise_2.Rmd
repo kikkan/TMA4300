@@ -13,6 +13,8 @@ subtitle: Computer Intensive Statistical Methods
 urlcolor: blue
 editor_options: 
   chunk_output_type: console
+header-includes:
+- \usepackage[width=0.8\textwidth]{caption}
 ---
 
 ```{r setup, include=FALSE}
@@ -276,20 +278,16 @@ mcmcIndivid = function(N, dt, sigma0=0.05){
     sigma_i = sqrt(sigma[i-1])
     
     # Take first MH step for t=1
-    mhStep = mhFirst(tau_i, sigma_i, dt$n.rain[1], 1, normMat[i,1], unifMat[i,1])
+    mhStep = mhFirst(tau_i, sigma_i, n.rain[1], 1, normMat[i,1], unifMat[i,1])
     tau_i[1] = mhStep$tau
-    # tau[i,1] = mhStep$tau
     accepted = accepted + mhStep$accepted
     
     # Perform MH steps for 1<t<366
     for (t in 2:(Ttot-1)){
-      mu_ab = 1/2 * (tau_i[t-1] + tau_i[t+1])
+      mu_ab    = 1/2 * (tau_i[t-1] + tau_i[t+1])
       prop_tau = normMat[i,t]*sigma_i/2 + mu_ab
-      # ratio = acceptRatio(n.years[t], n.rain[t], prop_tau, tau_i[t])
-      ratio = logAccRatio(n.years[t], n.rain[t], prop_tau, tau_i[t])
-      # if (runif(1) < min(c(1,ratio))){
+      ratio    = logAccRatio(n.years[t], n.rain[t], prop_tau, tau_i[t])
       if (unifMat[i,t] < min(c(1,ratio))){
-        # tau[i,t] = prop_tau
         tau_i[t] = prop_tau
         accepted = accepted + 1
       }
@@ -317,17 +315,17 @@ mcmcIndivid = function(N, dt, sigma0=0.05){
 ```
 
 ```{r 1e.Run, options}
-a=0
-Q = triDiag(diagonal = 2, upper = -1, lower = -1, nrow = 366)
-Q[1,1] = 1 
+a          = 0
+Q          = triDiag(diagonal = 2, upper = -1, lower = -1, nrow = 366)
+Q[1,1]     = 1 
 Q[366,366] = 1
 
 set.seed(321)
-N = 50000 
-pb = txtProgressBar(min = 0, max = N, initial = 0) 
-ptm = proc.time()
+N       = 50000 
+pb      = txtProgressBar(min = 0, max = N, initial = 0) 
+ptm     = proc.time()
 results = mcmcIndivid(N, rain)
-time = proc.time() - ptm
+time    = proc.time() - ptm
 time
 ```
 In the printout we see that computation time was `r time[3]`. The following chunk contain functions that compute some sought values and make desired figures.
@@ -364,18 +362,18 @@ The vertical red line in the trace plots to the left in Figure \@ref(fig:1eDispl
 pSeqCI = apply(pSeq, 2, CImean) # Compute mean and credibility interval
 
 # Burn
-burn=3000
-resultsB = results
-resultsB$tau = results$tau[burn:N,]
+burn           = 3000
+resultsB       = results
+resultsB$tau   = results$tau[burn:N,]
 resultsB$sigma = results$sigma[burn:N]
-pSeqB = pSeq[burn:N,]
-pSeqCIB = apply(pSeqB, 2, CImean) # Compute mean and credibility interval
-ciAndMean = rbind((pSeqCI[,1]), (pSeqCIB[,1]), 
+pSeqB          = pSeq[burn:N,]
+pSeqCIB        = apply(pSeqB, 2, CImean) # Compute mean and CI
+ciAndMean      = rbind((pSeqCI[,1]), (pSeqCIB[,1]), 
                   (pSeqCI[,201]), (pSeqCIB[,201]),
                   (pSeqCI[,366]), (pSeqCIB[,366]), 
                   CImean(results$sigma), CImean(resultsB$sigma))
 rownames(ciAndMean) = c("1","1 B", "201","201 B", "366","366 B", "sigma", "sigma B")
-# knitr::kable(round(ciAndMean,4), caption = "mean and stuff")
+
 knitr::kable(round(ciAndMean,4), caption = "mean and stuff")
 ```
 Burning some of the early iterations, here the first `r burn`, has some impact, but nothing major due to the fast convergence of MCMC sampler, as we can see in Table [1](tab:1eburn).
@@ -396,7 +394,6 @@ plot(rain$day,pSeq[1,], type = "l",
 lines(rain$day,pSeq[N/2,], type = "l", 
      ylim = ylim, col="cyan3")
 lines(rain$day,pSeq[N,], 
-      # type = "l",ylab=expression(paste(pi,"(",tau[366],")")),
      ylim = ylim, col = "blue", lty=1)
 legend(x="topright", legend = c("Initial values", "Halfway", "Last iteration"), lty = c(1,1,1),
        col=c("gray", "cyan3", "blue"), bg="transparent")
@@ -533,16 +530,16 @@ Qprecomp = function(M, Ttot=366){
 
 mcmcBlock = function(N, M=10, sigma0=0.1, tau0=rnorm(366)){
   # Allocate memory
-  tau = matrix(NA, nrow = N, ncol = Ttot) # (N x T)
-  sigma = numeric(length = N)
+  tau      = matrix(NA, nrow = N, ncol = Ttot) # (N x T)
+  sigma    = numeric(length = N)
   # Assign initial values
-  tau[1,] = tau0
+  tau[1,]  = tau0
   sigma[1] = sigma0
   # Assign Q matrices for easier access
-  Qm = Q$Qmult # precomputed -QaaInverse * Qab
-  n.sets = Q$n.sets
-  Imat = Q$I # (M x (n.sets-1))
-  Ires = Q$Ires
+  Qm       = Q$Qmult # precomputed -QaaInverse * Qab
+  n.sets   = Q$n.sets
+  Imat     = Q$I # (M x (n.sets-1))
+  Ires     = Q$Ires
   
   # Simulate N times
   accepted = 0
@@ -680,7 +677,8 @@ ggplot(data = gg1e.df, aes(x = day, y = probPreds)) +
 ```{r 1fTuneM, options}
 N = 5000
 
-Mlist = c(2,5,10,20,40,80,160)
+Mlist = c(2,5,10,15,20,25,40,80)
+n.runs= length(Mlist)
 resultList = list()
 time = c()
 set.seed(321)
@@ -694,26 +692,147 @@ for (i in 1:length(Mlist)){
   resultList = append(resultList, mcmcBlock(N,Mlist[i], tau0 = tau0))
   time = c(time, proc.time()[3]-start)
 }
-time
-
 ```
-
-```{r 1fsomeResults, options}
-# pSeqBlock2 = apply(resultList[[1]], 2, link)
-# pSeqBlock5 = apply(resultList[[4]], 2, link)
-# pSeqBlock10 = apply(resultList[[5]], 2, link)
-# pSeqBlock20 = apply(resultList[[7]], 2, link)
-```
-
-```{r 1ftimeAcc, options}
-k = seq(3,length(resultList), by=3)
-accProbs = c()
-for (i in k){
-  accProbs = c(accProbs, resultList[[i]])
+The chunk above ran the MCMC sampler for $N=$ `r N` with interval lengths $\boldsymbol{M}=\{ `r Mlist` \}$. In Figure \@ref(fig:1fTuneTimeAcc) produced by the chunk below we see that the acceptance probability decrease with increasing interval lengths $M$. For a RW(1) model, a rule of thumb is to have acceptance probability $\alpha \in (0.2,0.5)$ which coincide with the acceptance probability for $M=20$. We also notice that the computation time decrease for interval lengths $M \leq 20$ before it starts to increase. Thus, based on these results, $M=20$ seems like a good candidate for interval length.
+```{r 1fTuneTimeAcc, out.width="80%", fig.cap = "Computation time for different values of $M$ along with the respective acceptance probability. Dashed horizontal lines show desired acceptance probability for RW(1)."}
+accProbsBlock = c()
+for (m in Mlist){
+  accProbsBlock = c(accProbsBlock, resultList[[paste0("accProb",m)]])
 }
-
 par(mfrow=c(1,1))
-plot(Mlist, time, lty=2, ylim=c(0, max(time)))
-lines(Mlist, accProbs*100)
+plot(Mlist, time, ylim=c(0, max(c(time, 100*accProbsBlock))),
+     pch=16, xaxt="n", xlab="M", ylab="Time/acceptance probability (%)")
+points(Mlist, accProbsBlock*100, col="cyan3", pch=16)
+abline(h=c(20,50), lty=2)
+axis(1, at=Mlist)
 ```
+
+To further investigate candidates for interval lengths we consider the traceplots in Figure \@ref(fig:1fTraceBlockInit) produced by the chunk below. Since all fits were run for only $N= `r N` $ iterations, it is difficult to say whether the chain has fully converged. The three plot rows in the bottom show clear signs of not convergence. Still, the resulting traceplots does not rule out our favorable candidate from before, namely $M=20$, showing promising convergence rate.
+```{r 1fTraceBlockInit, fig.width=8, fig.height=12, out.width="80%", fig.cap="Trace plots of $\\boldsymbol{\\pi}$ for low to high value of the tuning param $M$ from top to bottom, respectively, for different days $t$."}
+dToPlot = c(1,201,366)
+par(mfrow = c(length(Mlist), length(dToPlot)),
+    mar=c(2,2,0.1,1))
+for (i in 1:length(Mlist)){
+  xaxt = ifelse(i==length(Mlist), "s", "n")
+  for (t in dToPlot){
+    plot(resultList[[paste0("tau",Mlist[i])]][,t], type="l",
+         xlab="", ylab="", xaxt=xaxt)
+  }
+}
+```
+
+So, some values of $M$ show promicing results, but we still need to compare them to the real data. Since all traceplots in Figure \@ref(fig:1fTraceBlockInit) show signs of not convergence for early iterations we chose to burn some values. The amount burned is shown in the chunk below.
+```{r 1fsomeResults, options}
+burnTune = 1000 # burn amount for M tuning
+pMeanBlockMat = matrix(NA, nrow = length(Mlist), ncol = Ttot)
+for (i in 1:length(Mlist)){
+  pMeanBlockMat[i,] = apply(link(resultList[[paste0("tau", Mlist[i])]][burnTune:N,]), 2, mean)
+}
+a=0
+```
+M = 25 shows good results
+```{r 1fmeanRealTune, fig.height=8,fig.width=8, out.width="90%"}
+colfunc<-colorRampPalette(c("red","yellow","springgreen","royalblue"))
+c = colfunc(length(pMeanBlockMat[,1]))
+diffTune = numeric()
+pReal = n.rain/n.years
+# plot(day,pReal, pch=4, cex=0.5)
+par(mfrow=c(ceiling(length(Mlist)/2), 2),mar=c(1,2,1,1))
+for (i in 1:length(pMeanBlockMat[,1])){
+  ifelse(i<length(pMeanBlockMat[,1])-1, NA, par(mar=c(2,2,1,1)))
+  yaxt = ifelse(i%%2, "s", "n")
+  xaxt = ifelse(i < length(pMeanBlockMat[,1])-1, "n", "s")
+  xl = paste0('M = ', Mlist[i]) 
+  plot(day,pReal, pch=4, cex=0.5,
+       ylab=expression(pi*xl), yaxt = yaxt, xaxt=xaxt)
+  lines(day,pMeanBlockMat[i,], col=c[i])
+  legend(x="topright", legend=paste0("M=", Mlist[i]))
+  diffTune = cbind(diffTune, sum((pMeanBlockMat[i,] - pReal)^2))
+  # diffTune[str(Mlist[i])] = sum((pMeanBlockMat[i,] - pReal)^2)
+}
+# legend(x="topright", legend = Mlist, col = c, lty = rep(1,7))
+colnames(diffTune) = Mlist
+diffTune
+# colnames(diffTune) = Mlist
+```
+
+```{r 1fRunFull, options}
+N = 50000
+M = 25
+set.seed(321)
+pb = txtProgressBar(min = 0, max = N, initial = 0) 
+Q = Qprecomp(M, Ttot)
+start = proc.time()[3]
+resultBlock = mcmcBlock(N,M)
+time = c(time, proc.time()[3]-start)
+```
+
+```{r 1fDisplayFull, fig.width=8, fig.height=8, out.width="90%", fig.cap="Traceplot, autocorrelation and histogram plots for $\\pi(\\tau_1), \\pi(\\tau_{201})$ and $\\pi(\\tau_{366})$ from top to bottom for block updated $\\tau$."}
+pBlock = apply(resultBlock$tau, 2, link)
+par(mfrow=c(3,3))
+plotTAH(pBlock[,1])
+plotTAH(pBlock[,201])
+plotTAH(pBlock[,366])
+```
+
+```{r 1fburnFull, fig.cap="mean"}
+pBlockCI = apply(pBlock, 2, CImean) # Compute mean and credibility interval
+
+# Burn
+burn=2000
+resultsB = resultBlock
+resultsB$tau = resultBlock$tau[burn:N,]
+resultsB$sigma = resultBlock$sigma[burn:N]
+pBlockB = pBlock[burn:N,]
+pBlockCIB = apply(pSeqB, 2, CImean) # Compute mean and credibility interval
+ciAndMean = rbind((pBlockCI[,1]), (pBlockCIB[,1]), 
+                  (pBlockCI[,201]), (pBlockCIB[,201]),
+                  (pBlockCI[,366]), (pBlockCIB[,366]), 
+                  CImean(resultsBlock$sigma), CImean(resultsB$sigma))
+rownames(ciAndMean) = c("1","1 B", "201","201 B", "366","366 B", "sigma", "sigma B")
+# knitr::kable(round(ciAndMean,4), caption = "mean and stuff")
+knitr::kable(round(ciAndMean,5), caption = "mean and stuff")
+```
+
+```{r 1fggMean, fig.cap="The black line is the mean of all predicted probabilities $\\pi$ excluding the burned predictions. The dashed green and blue lines are last iterations MCMC samples and the data probabilities, respectively."}
+gg1f.df = data.frame(probPreds = pBlock[N,], l = pBlockCI[2, ], 
+                     u = pBlockCI[3,], meanPreds = pBlockCI[1,], 
+                     probsReal = n.rain/n.years, 
+                     day = day)
+ggplot(data = gg1f.df, aes(x = day, y = probPreds)) + 
+  geom_ribbon(mapping = aes(ymin = l,ymax = u, fill = "CI"), alpha = 0.2) +
+  geom_line(aes(color = "tau", linetype="tau")) +
+  geom_line(aes(y = meanPreds, color = "mean", linetype="mean")) +
+  geom_point(aes(y = probsReal, color = "n.rain/n.years",
+                size="n.rain/n.years"), alpha = 0.3) + 
+  scale_linetype_manual(
+    name=" ",
+    breaks = c("tau", "mean", "n.rain/n.years"),
+    values = c(2, 1, NA),
+    labels=expression(pi*(tau),'Mean','Data probability')
+    # breaks = c("tau", "mean"),
+    # values = c(2, 1),
+    # labels=expression(pi*(tau),'Mean')
+    # values = c("tau"=1, "mean"=2, "n.rain/n.years"=2)
+  ) +
+  scale_size_manual(
+    name=" ",
+    breaks = c("tau", "mean", "n.rain/n.years"),
+    values = c(NA, NA, 0.1),
+    labels=expression(pi*(tau),'Mean','Data probability')
+    ) +
+  scale_color_manual(
+    name=" ",
+    # breaks = c("tau", "mean", "n.rain/n.years"),
+    values=c("tau"="green", "mean"="black","n.rain/n.years"="blue"),
+    # values=c("black", "green","pink"),
+    labels=expression(pi*(tau),'Mean','Data probability')
+  ) +
+  labs(y="Probabilities", x="Day") +
+  theme_minimal()
+```
+
+
+
+
 
