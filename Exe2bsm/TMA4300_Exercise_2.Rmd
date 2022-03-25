@@ -770,7 +770,7 @@ start = proc.time()[3]
 resultBlock = mcmcBlock(N,M)
 time = c(time, proc.time()[3]-start)
 ```
-In the following chunk we produce Figure \@ref(fig:1fDisplayFull). These plot show 
+In the following chunk we produce Figure \@ref(fig:1fDisplayFull) which show promising results for our choice of interval length. We see that some iterations should be burned which is done below.
 ```{r 1fDisplayFull, fig.width=8, fig.height=8, out.width="90%", fig.cap="Traceplot, autocorrelation and histogram plots for $\\pi(\\tau_1), \\pi(\\tau_{201})$ and $\\pi(\\tau_{366})$ from top to bottom for block updated $\\tau$."}
 pBlock = apply(resultBlock$tau, 2, link)
 par(mfrow=c(3,3))
@@ -792,12 +792,12 @@ pBlockCIB = apply(pSeqB, 2, CImean) # Compute mean and credibility interval
 ciAndMean = rbind((pBlockCI[,1]), (pBlockCIB[,1]), 
                   (pBlockCI[,201]), (pBlockCIB[,201]),
                   (pBlockCI[,366]), (pBlockCIB[,366]), 
-                  CImean(resultsBlock$sigma), CImean(resultsB$sigma))
+                  CImean(resultBlock$sigma), CImean(resultsB$sigma))
 rownames(ciAndMean) = c("1","1 B", "201","201 B", "366","366 B", "sigma", "sigma B")
 # knitr::kable(round(ciAndMean,4), caption = "mean and stuff")
-knitr::kable(round(ciAndMean,5), caption = "mean and stuff")
+knitr::kable(round(ciAndMean,5), caption = "Mean and credibility intervals for $\\pi_t$, $t\\in\\{1,201,366\\}$. Burned results are marked with $B$")
 ```
-
+In Table \@ref(tab:1fburnFull) we see marginal differences between burned and unburned results, which are also shown in Figure \@ref(fig:1fggMeanFull).
 
 ```{r 1fggMeanFull, fig.cap="The black line is the mean of all predicted probabilities $\\pi$ excluding the burned predictions. The dashed green and blue lines are last iterations MCMC samples and the data probabilities, respectively."}
 gg1f.df = data.frame(day = day, mp = pBlockCI[1,], pr = pReal, 
