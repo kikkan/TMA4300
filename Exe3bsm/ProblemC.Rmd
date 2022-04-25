@@ -1,0 +1,39 @@
+---
+title: "Title"
+author: "Christian Oppegård Moen"
+date: "DD MM YYYY"
+output: 
+  bookdown::pdf_document2:
+    toc_depth: '3'
+    number_sections: false
+  # pdf_document:
+  # #   toc: no
+  #   toc_depth: '3'
+subtitle: Course
+urlcolor: blue
+editor_options: 
+  chunk_output_type: console
+header-includes:
+- \usepackage[width=0.8\textwidth]{caption}
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(
+  echo = T, tidy=T, message=F, warning=F,
+  strip.white=F,
+  prompt=F,
+  cache=T,
+  root.dir = "./Exe3bsm",
+  size="scriptsize",
+  fig.width=7, 
+  fig.height=5, 
+  fig.align = "center"
+)
+```
+
+```{r load, options}
+source("./additionalFiles/probAhelp.R")
+source("./additionalFiles/probAdata.R")
+figPath = "./Figures/"
+```

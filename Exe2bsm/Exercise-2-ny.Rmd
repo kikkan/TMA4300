@@ -1050,7 +1050,7 @@ The different inputs for control.inla mostly yields very similar results. Howeve
 
 ## c) INLA model 2
 
-We fit a new model that is fitted with the code below
+We fit a new model that is fitted with the code below. We refer to this model as model 8. 
 
 ```{r}
 alpha=2
@@ -1063,21 +1063,41 @@ data=rain, Ntrials=n.years, control.compute=list(config = TRUE),
 family="binomial", verbose=TRUE, control.inla=control.inla)
 ```
 
-The first mathematical difference of this model compared to the first model is that the intercept is not removed. this means that we have
+The model in problem 2a is has a response given by equation \@ref(eq:1response).
+The first mathematical difference of the new model compared to the first model is that the intercept is not removed. This means that the response is given by
 
 $$
 y_t | \eta_t \sim \text{Bin}(n_t, \pi(\eta_t)), \ \ \pi(\eta_t)=\frac{\exp(\eta_t)}{1+\exp(\eta_t)}=\frac{1}{1+\exp(-\eta_t)},
 $$
-where $\eta_t=\beta_0+\tau_t,$ and $\beta_0$ is the intercept. We use the default prior on the intercept which is a Gaussian distribution with the mean and precision equal to zero. This is an improper prior where the variance is infitely large. The prior on $\theta$ is the same as in the model in 2a, that is a $\text{Loggamma}(\alpha=2, \beta=0.05)-$ distribution. 
-Unlike the previous model, this model uses the argument`constr=TRUE`.
+where $\eta_t=\beta_0+\tau_t,$ and $\beta_0$ is the intercept. We use the default prior on the intercept which is a Gaussian distribution with the mean and precision equal to zero. This is an improper prior where the variance is infinite. The prior on $\theta$ is the same as in the model in 2a, that is a $\text{Loggamma}(\alpha=2, \beta=0.05)-$ distribution. 
+Unlike the previous model, this model uses the argument `constr=TRUE`.
 This means that there is a sum-to-zero constraint, and the sum of $(\tau_1,..,\tau_n)$ is given by
 $$
 \sum_{i=1}^{n} \tau_i=0.
 $$
-We fit the model and compare it to the model from 2a. 
+We fit the model and compare it to the model from 2a. In the model 8, we have that $\eta_t$ is given by 
+$$
+\eta_t=\log \left (\frac{\pi (\eta_t)}{1- \pi (\eta_t)} \right) \implies \tau_t=\log \left (\frac{\pi (\eta_t)}{1- \pi (\eta_t)} \right)-\alpha
+$$
+In the model in 2a, we have
 
+$$
+\tau_t=\log \left (\frac{\pi (\tau_t)}{1- \pi (\tau_t)} \right) 
+$$
+Below, we plot the estimated mean values of $\tau_t$ for $t=1,..,T$ for both models.
 
-The fitted values of the models in 2a and 2c are plotted together.
+```{r plot-2c-tau, fig.cap="$\\tau$-values of model 1 and 8"}
+tau_1=mod1$summary.random$day$mean
+tau_8=mod8$summary.random$day$mean
+label1=c("Model 1", "Model 8")
+ggplot()+
+  geom_line(data=as.data.frame(tau_1), mapping=aes(x=1:366, y=tau_1, color="Model 1"))+geom_line(data=as.data.frame(tau_8), mapping=aes(x=1:366, y=tau_8, color="model 8"))+xlab("Day")+ylab("estimated values of"~tau)+
+  labs(color="Models")
+```
+As seen in figure \@ref(fig:plot-2c-tau), the predicted $\tau$-values are different for the two models. The model 
+with the intercept and sum-to-zero constraint is supposed to have tau-values that sum to zero, and
+from the figure it seems like that this is the case. The model without the intercept does not have tauvalues that sums to zero as seen in the figure. Nevertehelss, we can see that the to graphs have what seems like identical shapes. 
+The predicted $\pi-$values of the models in 2a and 2c are also plotted together.
 ```{r plot-2c, fig.cap="Fitted values of model 1 and 8"}
 ggplot()+geom_line(data=as.data.frame(mod1$summary.fitted.values$mean), mapping=aes(x=1:366,y=mod1$summary.fitted.values$mean, color=" Model 1"), color="black")+geom_line(data=as.data.frame(mod8$summary.fitted.values$mean), mapping=aes(x=1:366,y=mod8$summary.fitted.values$mean, color=" Model 2"), color="red")+xlab("Day")+ylab("Fitted values")+labs("Models")
 ```
@@ -1093,29 +1113,12 @@ intercept<-mod8$summary.fixed$mean
 ```
 
 
-We can't see any significant differences between the predictions of the two models. 
-The estimated intercept term is `r intercept `. In the model, $\eta_t$ is given by 
-$$
-\eta_t=\log \left (\frac{\pi (\eta_t)}{1- \pi (\eta_t)} \right) \implies \tau_t=\log \left (\frac{\pi (\eta_t)}{1- \pi (\eta_t)} \right)-\alpha
-$$
-In the model in 2a, we have
+To further show how similar the predictions are, we can look at $\pi$ for day 1, 201 and 366. 
+These predictions are very similar, and the first 
 
-$$
-\tau_t=\log \left (\frac{\pi (\tau_t)}{1- \pi (\tau_t)} \right) 
-$$
-Below, we plot the estimated mean values of $\tau_t$ for $t=1,..,T$ for both models.
+The estimated intercept term is `r intercept `. 
 
 
-
-```{r plot-2c-tau, fig.cap="$\\tau$-values of model 1 and 8"}
-
-tau_1=mod1$summary.random$day$mean
-tau_8=mod8$summary.random$day$mean
-label1=c("Model 1", "Model 8")
-ggplot()+
-  geom_line(data=as.data.frame(tau_1), mapping=aes(x=1:366, y=tau_1, color="Model 1"))+geom_line(data=as.data.frame(tau_8), mapping=aes(x=1:366, y=tau_8, color="model 8"))+xlab("Day")+ylab("estimated values of tau")+
-  labs(color="Models")
-```
 
 We see that the estimated $\tau$ values are different between the two models. The reason for this is as stated that there is a sum-to-zero constraint on the second model. However, the shape of the graphs are similar. The intercept term makes up for the fact that there are different constraints and we get very similar results. This can also be seen when calculating the posterior distribution.
 
