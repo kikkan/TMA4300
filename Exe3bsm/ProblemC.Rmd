@@ -35,5 +35,92 @@ knitr::opts_chunk$set(
 ```{r load, options}
 source("./additionalFiles/probAhelp.R")
 source("./additionalFiles/probAdata.R")
+source("./additionalFiles/u.txt")
+source("./additionalFiles/z.txt")
 figPath = "./Figures/"
 ```
+
+# Problem C: The EM-algorithm and bootstrapping
+
+Let $x_1,...x_n$ and $y_1,...,y_n$ be independet random variables, where
+$$
+x_i \sim \text{Exp}(\lambda_0) \ \ \text{and} \ \ y_i \sim \text{Exp}(\lambda_1)
+$$
+
+We observe
+
+$$
+z_i =\text{max}(x_i, y_i) \ \ \text{for} \ \ i=1,...,n
+$$
+
+and
+
+$$
+u_i=I(x_i \geq y_i) \ \ \text{for} \ \ i=1,...,n.
+$$
+
+## 1.
+
+The joint distribution of $(x_i, y_i),i=1,..n$ is given by
+
+$$
+f(x, y | \lambda_0, \lambda_1)=\prod_{i=1}^{n} f_{x}(x_i | \lambda_0) \cdot f_{y}(y_i|\lambda_1)
+$$
+$$
+=\prod_{i=1}^{n}\lambda_0 e^{-\lambda_0 x_i} \cdot \lambda_1 e^{-\lambda_1 y_i}.
+$$
+This means that the log likelihood is given by
+$$
+\ln f(x,y|\lambda_0, \lambda_1)=\sum_{i=1}^{n} \ln \lambda_0+ \ln \lambda_1-\lambda_0 x_i - \lambda_1 y_i.
+$$
+We want to find
+$$
+E\left[ \ln f(x,y|\lambda_0, \lambda_1)| z, u, \lambda_0^{(t)}, \lambda_1^{(t)} \right].
+$$
+
+which is given by
+
+$$
+Q(\lambda_0, \lambda_1 | \lambda_0^{(t)}, \lambda_1^{(t)})=E \left[\sum_{i=1}^{n}( \ln \lambda_0+ \ln \lambda_1-\lambda_0 x_i - \lambda_1 y_i) | z,u,\lambda_0^{(t)}, \lambda_1^{(t)} \right]
+$$
+$$
+=n(\ln \lambda_0+ \ln \lambda_1)-\lambda_0 \sum_{i=1}^{n} E
+$$
+
+## 2.
+
+In this problem we want to implement the EM-algorithm. We have found the conditional expectation $Q(\lambda_0,\lambda_1)=Q(\lambda_0, \lambda_1 | \lambda_0^{(t)}, \lambda_1^{(t)}).$ This corresponds to the E-step in the EM algorithm. In the M-step of the algorithm is to determine 
+
+$$
+(\lambda_0^{(t+1)}, \lambda_1^{(t+1)})=\text{argmax} \ \ Q(\lambda_0, \lambda_1).
+$$
+
+This can be found be finding the partial derivates and $Q(\lambda_0, \lambda_1)$ and set them equal to zero. 
+
+$$
+\frac{\partial}{\partial \lambda_0} Q(\lambda_0, \lambda_1)=
+\frac{n}{\lambda_0}-\sum_{i=1}^{n} \left ( u_i z_i+(1-u_i) \left ( \frac{1}{\lambda_0^{(t)}}-\frac{z_i}{e^{\lambda_0^{(t)}z_i}-1} \right ) \right)=0
+$$
+
+$$
+\frac{\partial}{\partial \lambda_1} Q(\lambda_0, \lambda_1)=
+\frac{n}{\lambda_1}-\sum_{i=1}^{n} \left ( u_i z_i+(1-u_i) \left ( \frac{1}{\lambda_1^{(t)}}-\frac{z_i}{e^{\lambda_1^{(t)}z_i}-1} \right ) \right)=0
+$$
+
+We solve these two equations for $\lambda_0$ and $\lambda_1$ respectively. This gives the M-step
+
+$$
+\lambda_0^{(t+1)}=n/\sum_{i=1}^{n} \left ( u_i z_i+(1-u_i) \left ( \frac{1}{\lambda_0^{(t)}}-\frac{z_i}{e^{\lambda_0^{(t)}z_i}-1} \right ) \right)
+$$
+$$
+\lambda_1^{(t+1)}=n/\sum_{i=1}^{n} \left ( u_i z_i+(1-u_i) \left ( \frac{1}{\lambda_1^{(t)}}-\frac{z_i}{e^{\lambda_1^{(t)}z_i}-1} \right ) \right)
+$$
+Let $\lambda^{(t)}=(\lambda_0^{(t)}, \lambda_1^{(t)}).$
+In the code below ,the EM-agorithm is implemented with the convergence criterion
+
+$$
+d(x^{(t+1)}, x^{t})= || {\lambda}^{(t+1)} - {\lambda}^{(t)}||_2<\epsilon
+$$
+
+
+
