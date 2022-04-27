@@ -1,7 +1,7 @@
 ---
-title: "Title"
-author: "Christian Oppegård Moen"
-date: "DD MM YYYY"
+title: "Exercise 3"
+author: "Erling Fause Steen, Christian Oppegård Moen"
+date: "Spring 2022"
 output: 
   bookdown::pdf_document2:
     toc_depth: '3'
@@ -9,7 +9,7 @@ output:
   # pdf_document:
   # #   toc: no
   #   toc_depth: '3'
-subtitle: Course
+subtitle: TMA4300
 urlcolor: blue
 editor_options: 
   chunk_output_type: console
@@ -31,9 +31,147 @@ knitr::opts_chunk$set(
   fig.align = "center"
 )
 ```
+\newpage
+```{r config, include=F}
+if (F){
+  setwd("C:/Users/chris/OneDrive/Documents/Fysmat/8 Semester V2022/Ber. Stat. Met/TMA4300/Exe3bsm/")
+  options(error=recover)
+  options(error=NULL)
+}
+```
 
-```{r load, options}
+```{r packages, include=F}
+library(knitr)
+library(kableExtra)
+```
+
+# Introduction
+
+# Problem A
+In this problem we will analyze a dataset which contain a sequence of length $T = 100$ of a non-Gaussian time-series for which we will compare two different parameter estimators. Consider the $\mathrm{AR}(2)$ specified by the relation
+\begin{equation}
+  x_t = \beta_1 x_{t-1} + \beta_2 x_{t-2} + e_t,
+\end{equation}
+where $e_t$ are independent and identically distributed (iid) random variables with zero mean and constant variance. Also, consider the loss functions with respect to $\boldsymbol{\beta} = [\beta_1, \beta_2]^T$ given by
+$$
+\begin{aligned}
+Q_{L S}(\boldsymbol{x})
+&=\sum_{t=3}^{T}\left(x_{t}-\beta_{1} x_{t-1}-\beta_{2} x_{t-2}\right)^{2}
+\\
+Q_{L A}(\boldsymbol{x})
+&=\sum_{t=3}^{T}\left|x_{t}-\beta_{1} x_{t-1}-\beta_{2} x_{t-2}\right|.
+\end{aligned}
+$$
+Then, the least sum residuals (LS) and least sum of absolute residuals (LA) are obtained by minimizing $Q_{LS}(\boldsymbol{x})$ and $Q_{L A}(\boldsymbol{x})$ respectively. We denote the minimisers by $\hat{\boldsymbol{\beta}}_{LS}$ and $\hat{\boldsymbol{\beta}}_{LA}$, and define the estimated residuals by $\hat e = x_{t}-\hat{\beta}_{1} x_{t-1}-\hat{\beta}_{2} x_{t-2}$ for $t=3,...,T$ with mean $\bar e$. Then, $\hat \varepsilon = \hat e - \bar e$ is re-centered to have mean zero.
+
+## 1 {#sec:1}
+Now we will use the residual resampling bootstrap method to evaluate the relative performance of the two parameter estimators, $\hat{\boldsymbol{\beta}}_{LS}$ and $\hat{\boldsymbol{\beta}}_{LA}$, which are calculated by the given function `ARp.beta.est`. We consider the variance and mean of $\boldsymbol{\beta}^*_{LS}$ and $\boldsymbol{\beta}^*_{LA}$ obtained by minimizing $Q_{LS}(\boldsymbol{x}^*)$ and $Q_{L A}(\boldsymbol{x}^*)$ for bootstrap sample $\boldsymbol{x}^*$, respectively. In Table \ref{tab:A1boot} the variance of $\boldsymbol{\beta}_{LA}$ is slightly lower than that of $\boldsymbol{\beta}_{LS}$, and the absolute value of the bias is slightly lower as well. This suggest that the LS estimator is not optimal.
+
+```{r load, include=F}
 source("./additionalFiles/probAhelp.R")
 source("./additionalFiles/probAdata.R")
 figPath = "./Figures/"
+```
+
+```{r disipaly, fig.cap="Given dataset. write more"}
+x = data3A$x
+plot(x, type="l", xlab = "t", ylab = "x")
+```
+
+```{r A1boot, fig.cap="a1tab"}
+detach("package:dplyr", unload = T)
+rsBoot = function(B, x, p=2){
+  T = length(x)
+  # Estimate beta
+  beta.hat = ARp.beta.est(x,p)
+  # calculate observed residuals of AR(p) seq 
+  e.LS.observed = ARp.resid(x, beta.hat$LS)
+  e.LA.observed = ARp.resid(x, beta.hat$LA)
+  # Allocate memory
+  beta.LS.star = matrix(nrow = B, ncol = 2)
+  beta.LA.star = matrix(nrow = B, ncol = 2)
+  # e.LS.star = vector(mode = "double", length = B)
+  # x.LS.star = matrix(nrow = B, ncol = 2)
+  # x.LA.star = matrix(nrow = B, ncol = 2)
+  
+  # Bootstrap
+  for (b in 1:B){
+    # Resample from observed residuals to yield pseudo innovations
+    e.LS.star = sample(e.LS.observed, size=T, replace=TRUE)
+    e.LA.star = sample(e.LA.observed, size=T, replace=TRUE)
+    # Generate pseudo data (Timeseries based on sampled residuals and beta.hat)
+    i = sample(T-1, 1)
+    x.LS.star = ARp.filter(x[c(i, i+1)], beta.hat$LS, e.LS.star)
+    x.LA.star = ARp.filter(x[c(i, i+1)], beta.hat$LA, e.LA.star)
+    # compute beta star
+    beta.LS.star[b,] = ARp.beta.est(x.LS.star,2)$LS
+    beta.LA.star[b,] = ARp.beta.est(x.LA.star,2)$LA
+  }
+  return(list(beta.hat = beta.hat, 
+              beta.LS = beta.LS.star, beta.LA = beta.LA.star,
+              e.LS = e.LS.observed, e.LA = e.LA.observed,
+              x.LS = x.LS.star, x.LA = x.LA.star))
+}
+
+B = 1500
+set.seed(420)
+boot = rsBoot(B, x)
+
+# Compute variance and bias
+
+beta.var = rbind(apply(boot$beta.LS, 2, var), apply(boot$beta.LA, 2, var))
+beta.bias = rbind(apply(boot$beta.LS, 2, mean) - boot$beta.hat$LS,
+                  apply(boot$beta.LA, 2, mean) - boot$beta.hat$LA)
+beta.vb = cbind(beta.var, beta.bias)
+beta.vb
+rownames(beta.vb) = c("LS", "LA")
+# colnames(beta.vb) = c("var_1", "var_2", "bias_1", "bias_2")
+
+kable(round(beta.vb,6), 
+      caption = "Variance and mean for $\\beta_1^*$ and $\\beta_2^*$.", 
+      format = "latex") %>% 
+  kable_styling() %>%
+  add_header_above(c(" ", "Var$_{1}$","Var$_{2}$","bias$_{1}$", 
+                     "bias$_{2}$"), escape = FALSE)
+```
+
+## 2
+Next, we will compute a $95\%$ prediction interval for $x_{101}$ for both the LS and the LA estimator. That is, we bootstrap sample $B$ times
+\begin{equation}
+  x_{101} = \beta_1^* x_{100} + \beta_2^* x_{99} + \hat{e}_{i}
+\end{equation}
+where $\beta_1^*$ and $\beta_2^*$ are sampled from all 1500 bootstrap samples found in section [A1](#sec:1), and $\hat{e}_{i}$ is sampled from the estimated residuals $\hat{e}_{t}$ for $t = 2,...,100$. The prediction intervals are found in Table \ref{tab:A1pi}.
+```{r A1pi, fig.cap="a1pi"}
+set.seed(420)
+# Bootstrap x_101 using beta.star and e.observed
+x_101.LS = vector(mode = "double", length = B)
+x_101.LA = vector(mode = "double", length = B)
+for (b in 1:B){
+  i.e = sample(98, 1)
+  i.beta = sample(1500,1)
+  x_101.LS[b] = boot$beta.LS[i.beta,] %*% x[c(100,99)] + boot$e.LS[i.e]
+  x_101.LA[b] = boot$beta.LS[i.beta,] %*% x[c(100,99)] + boot$e.LA[i.e]
+}
+
+pi.boot = rbind(LS = quantile(x_101.LS, probs=c(0.025,0.975)),
+                LA = quantile(x_101.LA, probs=c(0.025,0.975)))
+kable(round(pi.boot,2), caption = "Prediction interval of $x_{101}$.")
+```
+
+# Problem B
+We will investigate the concentration of bilirubin (mg/dL) in blood samples taken from three young men.
+
+$$
+\begin{array}{c|ccccccccccc}
+\hline \text { Individual } & {\text { Concentration }(\mathrm{mg} / \mathrm{dL})} \\
+\hline 1 & 0.14 & 0.20 & 0.23 & 0.27 & 0.27 & 0.34 & 0.41 & 0.41 & 0.55 & 0.61 & 0.66 \\
+2 & 0.20 & 0.27 & 0.32 & 0.34 & 0.34 & 0.38 & 0.41 & 0.41 & 0.48 & 0.55 & \\
+3 & 0.32 & 0.41 & 0.41 & 0.55 & 0.55 & 0.62 & 0.71 & 0.91 & & & \\
+\hline
+\end{array}
+$$
+```{r display, options}
+bilirubin <- read.table("./additionalFiles/bilirubin.txt",header=T)
+bilirubin
+boxplot(bilirubin)
 ```
