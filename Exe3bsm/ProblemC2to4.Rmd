@@ -1,0 +1,182 @@
+---
+title: "Title"
+author: "Christian Oppegård Moen"
+date: "DD MM YYYY"
+output: 
+  bookdown::pdf_document2:
+    toc_depth: '3'
+    number_sections: false
+  # pdf_document:
+  # #   toc: no
+  #   toc_depth: '3'
+subtitle: Course
+urlcolor: blue
+editor_options: 
+  chunk_output_type: console
+header-includes:
+- \usepackage[width=0.8\textwidth]{caption}
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(
+  echo = T, tidy=T, message=F, warning=F,
+  strip.white=F,
+  prompt=F,
+  cache=T,
+  root.dir = "./Exe3bsm",
+  size="scriptsize",
+  fig.width=7, 
+  fig.height=5, 
+  fig.align = "center"
+)
+```
+
+```{r load, options}
+source("./additionalFiles/probAhelp.R")
+source("./additionalFiles/probAdata.R")
+figPath = "./Figures/"
+```
+
+## 2.
+
+
+
+In this problem we want to implement the EM-algorithm. We have found the conditional expectation $Q(\lambda_0,\lambda_1)=Q(\lambda_0, \lambda_1 | \lambda_0^{(t)}, \lambda_1^{(t)}).$ This corresponds to the E-step in the EM algorithm. In the M-step of the algorithm is to determine 
+
+$$
+(\lambda_0^{(t+1)}, \lambda_1^{(t+1)})=\text{argmax} \ \ Q(\lambda_0, \lambda_1).
+$$
+
+This can be found be finding the partial derivates and $Q(\lambda_0, \lambda_1)$ and set them equal to zero. 
+
+$$
+\frac{\partial}{\partial \lambda_0} Q(\lambda_0, \lambda_1)=
+\frac{n}{\lambda_0}-\sum_{i=1}^{n} \left ( u_i z_i+(1-u_i) \left ( \frac{1}{\lambda_0^{(t)}}-\frac{z_i}{e^{\lambda_0^{(t)}z_i}-1} \right ) \right)=0
+$$
+
+$$
+\frac{\partial}{\partial \lambda_1} Q(\lambda_0, \lambda_1)=
+\frac{n}{\lambda_1}-\sum_{i=1}^{n} \left ( (1-u_i) z_i+u_i \left ( \frac{1}{\lambda_1^{(t)}}-\frac{z_i}{e^{\lambda_1^{(t)}z_i}-1} \right ) \right)=0
+$$
+
+We solve these two equations for $\lambda_0$ and $\lambda_1$ respectively. This gives the M-step
+
+$$
+\lambda_0^{(t+1)}=n/\sum_{i=1}^{n} \left ( u_i z_i+(1-u_i) \left ( \frac{1}{\lambda_0^{(t)}}-\frac{z_i}{e^{\lambda_0^{(t)}z_i}-1} \right ) \right)
+$$
+$$
+\lambda_1^{(t+1)}=n/\sum_{i=1}^{n} \left ( (1-u_i) z_i+u_i \left ( \frac{1}{\lambda_1^{(t)}}-\frac{z_i}{e^{\lambda_1^{(t)}z_i}-1} \right ) \right)
+$$
+Let $\lambda^{(t)}=(\lambda_0^{(t)}, \lambda_1^{(t)}).$
+We want to implement the EM-algorithm and we use the convergence criterion
+
+$$
+d(x^{(t+1)}, x^{t})= || {\lambda}^{(t+1)} - {\lambda}^{(t)}||_2<\epsilon.
+$$
+
+```{r dataC, include=FALSE}
+u<-read.csv("./additionalFiles/u.txt")
+z<-read.csv("./additionalFiles/z.txt")
+```
+
+The function below returns the conditional expectation, that is the E-step of the EM algorithm.
+
+```{r}
+cond_expectation <- function(lambda0, lambda1,lambda0t,lambda1t, u, z)
+{
+  n=length(u)
+  exp=n*(log(lambda0)+log(lambda1))-(lambda0*sum(u*z+(1-u)*(1/lambda0t-(z)/(exp(lambda0t*z)-1))))-(lambda1*sum(u*z+(1-u)*(1/lambda1t-(z)/(exp(lambda1t*z)-1))))
+return(exp)
+}
+```
+
+Under is a function that implement M-step.
+```{r}
+M_step<- function(lambda0t,lambda1t,u,z)
+{
+  n=length(u)
+  lambda0next=n/(sum(u*z+(1-u)*(1/lambda0t-(z)/(exp(lambda0t*z)-1))))
+  lambda1next=n/(sum((1-u)*z+u*(1/lambda1t-(z)/(exp(lambda1t*z)-1))))
+  
+  return(list(lambda0=lambda0next, lambda1=lambda1next))
+}
+
+lambda0=2
+lambda1=3
+list0<-c()
+list1<-c()
+for (i in 1:10) {
+  lambda0=M_step(lambda0,lambda1,u,z)$lambda0
+  lambda1=M_step(lambda0,lambda1,u,z)$lambda1
+  list0<-c(list0,lambda0)
+  list1<-c(list1,lambda1)
+}
+list0
+```
+
+```{r}
+EM_algorithm<- function(lambda,u,z, epsilon=10e-5)
+{
+  lambda0=lambda[1]
+  lambda1=lambda[2]
+  list0<-c()
+  list1<-c()
+  for (i in 1:30) {
+    lambda0=M_step(lambda0,lambda1,u,z)$lambda0
+    lambda1=M_step(lambda0,lambda1,u,z)$lambda1
+    list0<-c(list0,lambda0)
+    list1<-c(list1,lambda1)
+}
+  return(list(lambdas0=list0, lambdas1=list1))
+}
+```
+
+
+Under the EM algorithm is implemented
+
+```{r}
+ME_algorithm<- function(lambda,u,z, epsilon=10e-5)
+{
+  i=0
+  lambda0=lambda[0]
+  lambda1=lambda[1]
+  lambda=c(lambda0,lambda1)
+  lambdas0=c()
+  lambdas1=c()
+  norm=-Inf
+  for(i in 1:50)
+  {
+    #M-step
+    lambda0t=M_step(lambda0,lambda1,u,z)$lambda0
+    lambda1t=M_step(lambda0,lambda1,u,z)$lambda1
+    lambdas0=c(lambdas0,lambda0t)
+    lambdas1=c(lambdas1,lambda1t)
+    lambdat=c(lambda0t,lambda1t)
+    #convergence
+    
+    norm=norm(lambdat-lambda, type="2")
+    lambda=lambdat
+  }
+  return(list(lambdas0=lambdas0, lambdas1=lambdas1))
+}
+```
+
+
+```{r}
+lambdas<-EM_algorithm(c(2.5,5),u,z)
+lambdas$lambdas1
+```
+## 4.
+
+We want to find an analytical formula for $f_{Z_i,U_i}(z_i, u_i| \lambda_0, \lambda_1).$
+
+$$
+f_{Z_i,U_i}(z_i, u_i | \lambda_0, \lambda_1)=P(\text{max}(X_i, Y_i)=z , I(X_i \geq Y_i)=u_i | \lambda_0, \lambda_1)
+$$
+$$
+=u_i P(\text{max}(X_i, Y_i)=z_i, X)
+$$
+
+
+

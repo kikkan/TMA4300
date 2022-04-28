@@ -1,0 +1,347 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\PassOptionsToPackage{dvipsnames,svgnames,x11names}{xcolor}
+%
+\documentclass[
+]{article}
+\title{Title}
+\usepackage{etoolbox}
+\makeatletter
+\providecommand{\subtitle}[1]{% add subtitle to \maketitle
+  \apptocmd{\@title}{\par {\large #1 \par}}{}{}
+}
+\makeatother
+\subtitle{Course}
+\author{Christian Oppegård Moen}
+\date{DD MM YYYY}
+
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={Title},
+  pdfauthor={Christian Oppegård Moen},
+  colorlinks=true,
+  linkcolor={Maroon},
+  filecolor={Maroon},
+  citecolor={Blue},
+  urlcolor={blue},
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage[width=0.8\textwidth]{caption}
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+
+\begin{document}
+\maketitle
+
+{
+\hypersetup{linkcolor=}
+\setcounter{tocdepth}{3}
+\tableofcontents
+}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{source}\NormalTok{(}\StringTok{"./additionalFiles/probAhelp.R"}\NormalTok{)}
+\FunctionTok{source}\NormalTok{(}\StringTok{"./additionalFiles/probAdata.R"}\NormalTok{)}
+\NormalTok{figPath }\OtherTok{=} \StringTok{"./Figures/"}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{problem-c-the-em-algorithm-and-bootstrapping}{%
+\section{Problem C: The EM-algorithm and bootstrapping}\label{problem-c-the-em-algorithm-and-bootstrapping}}
+
+Let \(x_1,...x_n\) and \(y_1,...,y_n\) be independet random variables, where
+\[
+x_i \sim \text{Exp}(\lambda_0) \ \ \text{and} \ \ y_i \sim \text{Exp}(\lambda_1)
+\]
+
+We observe
+
+\[
+z_i =\text{max}(x_i, y_i) \ \ \text{for} \ \ i=1,...,n
+\]
+
+and
+
+\[
+u_i=I(x_i \geq y_i) \ \ \text{for} \ \ i=1,...,n.
+\]
+
+\hypertarget{section}{%
+\subsection{1.}\label{section}}
+
+The joint distribution of \((x_i, y_i),i=1,..n\) is given by
+
+\[
+f(x, y | \lambda_0, \lambda_1)=\prod_{i=1}^{n} f_{x}(x_i | \lambda_0) \cdot f_{y}(y_i|\lambda_1)
+\]
+\[
+=\prod_{i=1}^{n}\lambda_0 e^{-\lambda_0 x_i} \cdot \lambda_1 e^{-\lambda_1 y_i}.
+\]
+This means that the log likelihood is given by
+\[
+\ln f(x,y|\lambda_0, \lambda_1)=\sum_{i=1}^{n} \ln \lambda_0+ \ln \lambda_1-\lambda_0 x_i - \lambda_1 y_i=n(\ln \lambda_0+ \ln \lambda_1)-\lambda_0\sum_{i=1}^n x_i -\lambda_1\sum_{i=1}^n y_i \quad.
+\]
+We want to find
+\[
+E\left[ \ln f(x,y|\lambda_0, \lambda_1)| z, u, \lambda_0^{(t)}, \lambda_1^{(t)} \right].
+\]
+
+which is given by
+
+\[
+Q(\lambda_0, \lambda_1 | \lambda_0^{(t)}, \lambda_1^{(t)})=E \left[\sum_{i=1}^{n}n(\ln \lambda_0+ \ln \lambda_1)-\lambda_0\sum_{i=1}^n x_i -\lambda_1\sum_{i=1}^n y_i \ \ | \ \ z,u,\lambda_0^{(t)}, \lambda_1^{(t)} \right]
+\]
+\[
+=-n(\ln\lambda_0+\ln\lambda_1) -\lambda_0\sum_{i=1}^n E(x_i\mid z_i,u_i,\lambda_0^{(t)},\lambda_1^{(t)}) -\lambda_1\sum_{i=1}^n E(y_i\mid z_i,u_i,\lambda_0^{(t)},\lambda_1^{(t)}).
+\]
+Now, we want to find \(E(x_i\mid z_i,u_i,\lambda_0^{(t)},\lambda_1^{(t)})\) and \(E(y_i\mid z_i,u_i,\lambda_0^{(t)},\lambda_1^{(t)}).\) We start by considering the first conditional expectation. This can found by first considering
+\[
+\begin{aligned}
+  f(x_i\mid z_i,u_i,\lambda_0^{(t)},\lambda_1^{(t)})  
+  &= \begin{cases} z_i \quad \quad \quad \quad \quad \text{for} & u_i=1 \\ \frac{\lambda_0^{(t)}\exp(-\lambda_0^{(t)}x_i)}{1-\exp(-\lambda_0^{(t)}z_i)} \ \ \text{for} & u_i=0 \end{cases} \quad.
+\end{aligned}
+\]
+The expectation is given by
+
+\[
+E[x_i|z_i, u_i, \lambda_0^{(t)}, \lambda_1^{(t)}]=u_i z_i + (1-u_i)\int_{0}^{z_i} x_i \frac{\lambda_0^{(t)}\exp(-\lambda_0^{(t)}x_i)}{1-\exp(-\lambda_0^{(t)}z_i)} dx_i
+\]
+where
+
+\[
+\int_{0}^{z_i} x_i \frac{\lambda_0^{(t)}\exp(-\lambda_0^{(t)}x_i)}{1-\exp(-\lambda_0^{(t)}z_i)} dx_i=
+\left [- \frac{(\lambda_0^{(t)}x+1)\exp(-\lambda_0^{(t)} \cdot (x_i-z_i))}{\lambda_0^{(t)}(1-\exp(\lambda_0 z))} \right]_{0}^{z_i}
+\]
+\[
+=\frac{\exp(\lambda_0^{(t)} z_i)- \lambda_0 z_i-1}{\lambda_0^{(t)} \cdot (\exp(\lambda_0^{(t)}-1))} \implies
+\]
+\[
+E[x_i|z_i, u_i, \lambda_0^{(t)}, \lambda_1^{(t)}]=u_i z_i+(1-u_i) \cdot \frac{\exp(\lambda_0^{(t)} z_i)- \lambda_0 z_i-1}{\lambda_0^{(t)} \cdot (\exp(\lambda_0^{(t)}-1))}.
+\]
+We also need to find \(E[y_i|z_i, u_i, \lambda_0^{(t)}, \lambda_1^{(t)}]\). We first consider the pdf
+
+\[
+\begin{aligned}
+  f(y_i\mid z_i,u_i,\lambda_0^{(t)},\lambda_1^{(t)})  
+  &= \begin{cases} z_i \quad \quad \quad \quad \quad \text{for} & u_i=1 \\ \frac{\lambda_1^{(t)}\exp(-\lambda_1^{(t)}y_i)}{1-\exp(-\lambda_1^{(t)}z_i)} \ \ \text{for} & u_i=0 \end{cases} \quad.
+\end{aligned}
+\]
+The conditional expectation is given by
+
+\[
+E[y_i|z_i, u_i, \lambda_0^{(t)}, \lambda_1^{(t)}]=(1 - u_i) z_i + u_i \int_{0}^{z_i} y_i \frac{\lambda_1^{(t)} \exp\left\{-\lambda_1^{(t)} y_i\right\}}{1 - \exp\left\{-\lambda_1^{(t)} z_i\right\}} dy_i 
+\]
+where
+
+\$\$
+\int\_\{0\}\^{}\{z\_i\} y\_i \frac{\lambda_1^{(t)}\exp(-\lambda_1^{(t)}y_i)}{1-\exp(-\lambda_1^{(t)}z_i)} dy\_i=
+
+\frac{\exp({\lambda_1^{(t)} z_i})-\lambda_1^{(t)}-1}{\lambda_1^{(t)}(\exp(\lambda_1^{(t) }z_i)-1)}
+
+\$\$
+\#\# 2.
+
+In this problem we want to implement the EM-algorithm. We have found the conditional expectation \(Q(\lambda_0,\lambda_1)=Q(\lambda_0, \lambda_1 | \lambda_0^{(t)}, \lambda_1^{(t)}).\) This corresponds to the E-step in the EM algorithm. In the M-step of the algorithm is to determine
+
+\[
+(\lambda_0^{(t+1)}, \lambda_1^{(t+1)})=\text{argmax} \ \ Q(\lambda_0, \lambda_1).
+\]
+
+This can be found be finding the partial derivates and \(Q(\lambda_0, \lambda_1)\) and set them equal to zero.
+
+\[
+\frac{\partial}{\partial \lambda_0} Q(\lambda_0, \lambda_1)=
+\frac{n}{\lambda_0}-\sum_{i=1}^{n} \left ( u_i z_i+(1-u_i) \left ( \frac{1}{\lambda_0^{(t)}}-\frac{z_i}{e^{\lambda_0^{(t)}z_i}-1} \right ) \right)=0
+\]
+
+\[
+\frac{\partial}{\partial \lambda_1} Q(\lambda_0, \lambda_1)=
+\frac{n}{\lambda_1}-\sum_{i=1}^{n} \left ( u_i z_i+(1-u_i) \left ( \frac{1}{\lambda_1^{(t)}}-\frac{z_i}{e^{\lambda_1^{(t)}z_i}-1} \right ) \right)=0
+\]
+
+We solve these two equations for \(\lambda_0\) and \(\lambda_1\) respectively. This gives the M-step
+
+\[
+\lambda_0^{(t+1)}=n/\sum_{i=1}^{n} \left ( u_i z_i+(1-u_i) \left ( \frac{1}{\lambda_0^{(t)}}-\frac{z_i}{e^{\lambda_0^{(t)}z_i}-1} \right ) \right)
+\]
+\[
+\lambda_1^{(t+1)}=n/\sum_{i=1}^{n} \left ( u_i z_i+(1-u_i) \left ( \frac{1}{\lambda_1^{(t)}}-\frac{z_i}{e^{\lambda_1^{(t)}z_i}-1} \right ) \right)
+\]
+Let \(\lambda^{(t)}=(\lambda_0^{(t)}, \lambda_1^{(t)}).\)
+We want to implement the EM-algorithm and we use the convergence criterion
+
+\[
+d(x^{(t+1)}, x^{t})= || {\lambda}^{(t+1)} - {\lambda}^{(t)}||_2<\epsilon.
+\]
+
+The function below returns the conditional expectation, that is the E-step of the EM algorithm.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{cond\_expectation }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(lambda0, lambda1, lambda0t, lambda1t, u, z) \{}
+\NormalTok{    n }\OtherTok{=} \FunctionTok{length}\NormalTok{(u)}
+\NormalTok{    exp }\OtherTok{=}\NormalTok{ n }\SpecialCharTok{*}\NormalTok{ (}\FunctionTok{log}\NormalTok{(lambda0) }\SpecialCharTok{+} \FunctionTok{log}\NormalTok{(lambda1)) }\SpecialCharTok{{-}}\NormalTok{ (lambda0 }\SpecialCharTok{*} \FunctionTok{sum}\NormalTok{(u }\SpecialCharTok{*}\NormalTok{ z }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{{-}}\NormalTok{ u) }\SpecialCharTok{*}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{/}\NormalTok{lambda0t }\SpecialCharTok{{-}}
+\NormalTok{        (z)}\SpecialCharTok{/}\NormalTok{(}\FunctionTok{exp}\NormalTok{(lambda0t }\SpecialCharTok{*}\NormalTok{ z) }\SpecialCharTok{{-}} \DecValTok{1}\NormalTok{)))) }\SpecialCharTok{{-}}\NormalTok{ (lambda1 }\SpecialCharTok{*} \FunctionTok{sum}\NormalTok{(u }\SpecialCharTok{*}\NormalTok{ z }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{{-}}\NormalTok{ u) }\SpecialCharTok{*}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{/}\NormalTok{lambda1t }\SpecialCharTok{{-}}
+\NormalTok{        (z)}\SpecialCharTok{/}\NormalTok{(}\FunctionTok{exp}\NormalTok{(lambda1t }\SpecialCharTok{*}\NormalTok{ z) }\SpecialCharTok{{-}} \DecValTok{1}\NormalTok{))))}
+    \FunctionTok{return}\NormalTok{(exp)}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+Under is a function that implement M-step.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{M\_step }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(lambda0t, lambda1t, u, z) \{}
+\NormalTok{    lambda0next }\OtherTok{=}\NormalTok{ n}\SpecialCharTok{/}\NormalTok{(}\FunctionTok{sum}\NormalTok{(u }\SpecialCharTok{*}\NormalTok{ z }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{{-}}\NormalTok{ u) }\SpecialCharTok{*}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{/}\NormalTok{lambda0t }\SpecialCharTok{{-}}\NormalTok{ (z)}\SpecialCharTok{/}\NormalTok{(}\FunctionTok{exp}\NormalTok{(lambda0t }\SpecialCharTok{*}\NormalTok{ z) }\SpecialCharTok{{-}}
+        \DecValTok{1}\NormalTok{))))}
+\NormalTok{    lambda1next }\OtherTok{=}\NormalTok{ n}\SpecialCharTok{/}\NormalTok{(}\FunctionTok{sum}\NormalTok{(u }\SpecialCharTok{*}\NormalTok{ z }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{{-}}\NormalTok{ u) }\SpecialCharTok{*}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{/}\NormalTok{lambda1t }\SpecialCharTok{{-}}\NormalTok{ (z)}\SpecialCharTok{/}\NormalTok{(}\FunctionTok{exp}\NormalTok{(lambda1t }\SpecialCharTok{*}\NormalTok{ z) }\SpecialCharTok{{-}}
+        \DecValTok{1}\NormalTok{))))}
+
+    \FunctionTok{return}\NormalTok{(}\FunctionTok{list}\NormalTok{(}\AttributeTok{lambda0 =}\NormalTok{ lambda0next, }\AttributeTok{lambda1 =}\NormalTok{ lambda1next))}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+Under the ME algorithm is implemented
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{ME\_algorithm }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(lambda, u, z, }\AttributeTok{epsilon =} \FloatTok{1e{-}04}\NormalTok{) \{}
+\NormalTok{    i }\OtherTok{=} \DecValTok{0}
+\NormalTok{    lambda0 }\OtherTok{=}\NormalTok{ lambda[}\DecValTok{0}\NormalTok{]}
+\NormalTok{    lambda1 }\OtherTok{=}\NormalTok{ lambda[}\DecValTok{1}\NormalTok{]}
+    \ControlFlowTok{while}\NormalTok{ (norm }\SpecialCharTok{\textless{}}\NormalTok{ epsilon }\SpecialCharTok{\&\&}\NormalTok{ i }\SpecialCharTok{\textless{}} \DecValTok{500}\NormalTok{) \{}
+        \CommentTok{\# E{-}step}
+\NormalTok{        Q }\OtherTok{=} \FunctionTok{cond\_expectation}\NormalTok{(lambda0, lambda1, )}
+        \CommentTok{\# M{-}step}
+
+\NormalTok{    \}}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{l }\OtherTok{\textless{}{-}} \FunctionTok{numeric}\NormalTok{(}\DecValTok{2}\NormalTok{)}
+\NormalTok{l}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0 0
+\end{verbatim}
+
+\hypertarget{section-1}{%
+\subsection{4.}\label{section-1}}
+
+We want to find an analytical formula for \(f_{Z_i,U_i}(z_i, u_i| \lambda_0, \lambda_1).\)
+
+\[
+f_{Z_i,U_i}(z_i, u_i | \lambda_0, \lambda_1)=P(\text{max}(X_i, Y_i)=z , I(X_i \geq Y_i)=u_i | \lambda_0, \lambda_1)
+\]
+\[
+=u_i P(\text{max}(X_i, Y_i)=z_i, X)
+\]
+
+\end{document}

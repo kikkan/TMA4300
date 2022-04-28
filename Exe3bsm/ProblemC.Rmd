@@ -35,8 +35,6 @@ knitr::opts_chunk$set(
 ```{r load, options}
 source("./additionalFiles/probAhelp.R")
 source("./additionalFiles/probAdata.R")
-source("./additionalFiles/u.txt")
-source("./additionalFiles/z.txt")
 figPath = "./Figures/"
 ```
 
@@ -71,7 +69,7 @@ $$
 $$
 This means that the log likelihood is given by
 $$
-\ln f(x,y|\lambda_0, \lambda_1)=\sum_{i=1}^{n} \ln \lambda_0+ \ln \lambda_1-\lambda_0 x_i - \lambda_1 y_i.
+\ln f(x,y|\lambda_0, \lambda_1)=\sum_{i=1}^{n} \ln \lambda_0+ \ln \lambda_1-\lambda_0 x_i - \lambda_1 y_i=n(\ln \lambda_0+ \ln \lambda_1)-\lambda_0\sum_{i=1}^n x_i -\lambda_1\sum_{i=1}^n y_i \quad.
 $$
 We want to find
 $$
@@ -81,13 +79,58 @@ $$
 which is given by
 
 $$
-Q(\lambda_0, \lambda_1 | \lambda_0^{(t)}, \lambda_1^{(t)})=E \left[\sum_{i=1}^{n}( \ln \lambda_0+ \ln \lambda_1-\lambda_0 x_i - \lambda_1 y_i) | z,u,\lambda_0^{(t)}, \lambda_1^{(t)} \right]
+Q(\lambda_0, \lambda_1 | \lambda_0^{(t)}, \lambda_1^{(t)})=E \left[\sum_{i=1}^{n}n(\ln \lambda_0+ \ln \lambda_1)-\lambda_0\sum_{i=1}^n x_i -\lambda_1\sum_{i=1}^n y_i \ \ | \ \ z,u,\lambda_0^{(t)}, \lambda_1^{(t)} \right]
 $$
 $$
-=n(\ln \lambda_0+ \ln \lambda_1)-\lambda_0 \sum_{i=1}^{n} E
+=-n(\ln\lambda_0+\ln\lambda_1) -\lambda_0\sum_{i=1}^n E(x_i\mid z_i,u_i,\lambda_0^{(t)},\lambda_1^{(t)}) -\lambda_1\sum_{i=1}^n E(y_i\mid z_i,u_i,\lambda_0^{(t)},\lambda_1^{(t)}).
 $$
+Now, we want to find $E(x_i\mid z_i,u_i,\lambda_0^{(t)},\lambda_1^{(t)})$ and $E(y_i\mid z_i,u_i,\lambda_0^{(t)},\lambda_1^{(t)}).$ We start by considering the first conditional expectation. This can found by first considering
+$$
+\begin{aligned}
+  f(x_i\mid z_i,u_i,\lambda_0^{(t)},\lambda_1^{(t)})  
+  &= \begin{cases} z_i \quad \quad \quad \quad \quad \text{for} & u_i=1 \\ \frac{\lambda_0^{(t)}\exp(-\lambda_0^{(t)}x_i)}{1-\exp(-\lambda_0^{(t)}z_i)} \ \ \text{for} & u_i=0 \end{cases} \quad.
+\end{aligned}
+$$
+The expectation is given by
 
+$$
+E[x_i|z_i, u_i, \lambda_0^{(t)}, \lambda_1^{(t)}]=u_i z_i + (1-u_i)\int_{0}^{z_i} x_i \frac{\lambda_0^{(t)}\exp(-\lambda_0^{(t)}x_i)}{1-\exp(-\lambda_0^{(t)}z_i)} dx_i
+$$
+where
+
+$$
+\int_{0}^{z_i} x_i \frac{\lambda_0^{(t)}\exp(-\lambda_0^{(t)}x_i)}{1-\exp(-\lambda_0^{(t)}z_i)} dx_i=
+\left [- \frac{(\lambda_0^{(t)}x+1)\exp(-\lambda_0^{(t)} \cdot (x_i-z_i))}{\lambda_0^{(t)}(1-\exp(\lambda_0 z))} \right]_{0}^{z_i}
+$$
+$$
+=\frac{\exp(\lambda_0^{(t)} z_i)- \lambda_0 z_i-1}{\lambda_0^{(t)} \cdot (\exp(\lambda_0^{(t)}-1))} \implies
+$$
+$$
+E[x_i|z_i, u_i, \lambda_0^{(t)}, \lambda_1^{(t)}]=u_i z_i+(1-u_i) \cdot \frac{\exp(\lambda_0^{(t)} z_i)- \lambda_0 z_i-1}{\lambda_0^{(t)} \cdot (\exp(\lambda_0^{(t)}-1))}.
+$$
+We also need to find $E[y_i|z_i, u_i, \lambda_0^{(t)}, \lambda_1^{(t)}]$. We first consider the pdf
+
+$$
+\begin{aligned}
+  f(y_i\mid z_i,u_i,\lambda_0^{(t)},\lambda_1^{(t)})  
+  &= \begin{cases} z_i \quad \quad \quad \quad \quad \text{for} & u_i=1 \\ \frac{\lambda_1^{(t)}\exp(-\lambda_1^{(t)}y_i)}{1-\exp(-\lambda_1^{(t)}z_i)} \ \ \text{for} & u_i=0 \end{cases} \quad.
+\end{aligned}
+$$
+The conditional expectation is given by
+
+$$
+E[y_i|z_i, u_i, \lambda_0^{(t)}, \lambda_1^{(t)}]=(1 - u_i) z_i + u_i \int_{0}^{z_i} y_i \frac{\lambda_1^{(t)} \exp\left\{-\lambda_1^{(t)} y_i\right\}}{1 - \exp\left\{-\lambda_1^{(t)} z_i\right\}} dy_i 
+$$
+where
+
+$$
+\int_{0}^{z_i} y_i \frac{\lambda_1^{(t)}\exp(-\lambda_1^{(t)}y_i)}{1-\exp(-\lambda_1^{(t)}z_i)} dy_i=
+
+\frac{\exp({\lambda_1^{(t)} z_i})-\lambda_1^{(t)}-1}{\lambda_1^{(t)}(\exp(\lambda_1^{(t) }z_i)-1)}
+$$
 ## 2.
+
+
 
 In this problem we want to implement the EM-algorithm. We have found the conditional expectation $Q(\lambda_0,\lambda_1)=Q(\lambda_0, \lambda_1 | \lambda_0^{(t)}, \lambda_1^{(t)}).$ This corresponds to the E-step in the EM algorithm. In the M-step of the algorithm is to determine 
 
@@ -116,11 +159,71 @@ $$
 \lambda_1^{(t+1)}=n/\sum_{i=1}^{n} \left ( u_i z_i+(1-u_i) \left ( \frac{1}{\lambda_1^{(t)}}-\frac{z_i}{e^{\lambda_1^{(t)}z_i}-1} \right ) \right)
 $$
 Let $\lambda^{(t)}=(\lambda_0^{(t)}, \lambda_1^{(t)}).$
-In the code below ,the EM-agorithm is implemented with the convergence criterion
+We want to implement the EM-algorithm and we use the convergence criterion
 
 $$
-d(x^{(t+1)}, x^{t})= || {\lambda}^{(t+1)} - {\lambda}^{(t)}||_2<\epsilon
+d(x^{(t+1)}, x^{t})= || {\lambda}^{(t+1)} - {\lambda}^{(t)}||_2<\epsilon.
 $$
 
+```{r dataC, include=FALSE}
+u<-read.csv("./additionalFiles/u.txt")
+z<-read.csv("./additionalFiles/z.txt")
+```
+
+The function below returns the conditional expectation, that is the E-step of the EM algorithm.
+
+```{r}
+cond_expectation <- function(lambda0, lambda1,lambda0t,lambda1t, u, z)
+{
+  n=length(u)
+  exp=n*(log(lambda0)+log(lambda1))-(lambda0*sum(u*z+(1-u)*(1/lambda0t-(z)/(exp(lambda0t*z)-1))))-(lambda1*sum(u*z+(1-u)*(1/lambda1t-(z)/(exp(lambda1t*z)-1))))
+return(exp)
+}
+```
+
+Under is a function that implement M-step.
+```{r}
+M_step<- function(lambda0t,lambda1t,u,z)
+{
+  lambda0next=n/(sum(u*z+(1-u)*(1/lambda0t-(z)/(exp(lambda0t*z)-1))))
+  lambda1next=n/(sum(u*z+(1-u)*(1/lambda1t-(z)/(exp(lambda1t*z)-1))))
+  
+  return(list(lambda0=lambda0next, lambda1=lambda1next))
+}
+```
+
+Under the ME algorithm is implemented
+
+```{r}
+ME_algorithm<- function(lambda,u,z, epsilon=10e-5)
+{
+  i=0
+  lambda0=lambda[0]
+  lambda1=lambda[1]
+  while(norm<epsilon && i<500 )
+  {
+    #E-step
+    Q=cond_expectation(lambda0, lambda1, )
+    #M-step
+    
+  }
+}
+```
+
+
+```{r}
+l<-numeric(2)
+l
+```
+## 4.
+
+We want to find an analytical formula for $f_{Z_i,U_i}(z_i, u_i| \lambda_0, \lambda_1).$
+
+$$
+f_{Z_i,U_i}(z_i, u_i | \lambda_0, \lambda_1)=P(\text{max}(X_i, Y_i)=z , I(X_i \geq Y_i)=u_i | \lambda_0, \lambda_1)
+$$
+$$
+=u_i P(\text{max}(X_i, Y_i)=z_i, X)
+$$
 
 
