@@ -15,6 +15,8 @@ editor_options:
   chunk_output_type: console
 header-includes:
 - \usepackage[width=0.8\textwidth]{caption}
+- \usepackage{algorithm}
+- \usepackage{algpseudocode}
 ---
 
 ```{r setup, include=FALSE}
@@ -62,10 +64,27 @@ Q_{L A}(\boldsymbol{x})
 &=\sum_{t=3}^{T}\left|x_{t}-\beta_{1} x_{t-1}-\beta_{2} x_{t-2}\right|.
 \end{aligned}
 $$
-Then, the least sum residuals (LS) and least sum of absolute residuals (LA) are obtained by minimizing $Q_{LS}(\boldsymbol{x})$ and $Q_{L A}(\boldsymbol{x})$ respectively. We denote the minimisers by $\hat{\boldsymbol{\beta}}_{LS}$ and $\hat{\boldsymbol{\beta}}_{LA}$, and define the estimated residuals by $\hat e = x_{t}-\hat{\beta}_{1} x_{t-1}-\hat{\beta}_{2} x_{t-2}$ for $t=3,...,T$ with mean $\bar e$. Then, $\hat \varepsilon = \hat e - \bar e$ is re-centered to have mean zero.
+Then, the least sum residuals (LS) and least sum of absolute residuals (LA) are obtained by minimizing $Q_{LS}(\boldsymbol{x})$ and $Q_{L A}(\boldsymbol{x})$ respectively. We denote the minimisers by $\hat{\boldsymbol{\beta}}_{LS}$ and $\hat{\boldsymbol{\beta}}_{LA}$, and define the estimated residuals by $\hat e_t = x_{t}-\hat{\beta}_{1} x_{t-1}-\hat{\beta}_{2} x_{t-2}$ for $t=3,...,T$ with mean $\bar e$. Then, $\hat \varepsilon = \hat e - \bar e$ is re-centered to have mean zero.
 
 ## 1 {#sec:1}
-Now we will use the residual resampling bootstrap method to evaluate the relative performance of the two parameter estimators, $\hat{\boldsymbol{\beta}}_{LS}$ and $\hat{\boldsymbol{\beta}}_{LA}$, which are calculated by the given function `ARp.beta.est`. We consider the variance and mean of $\boldsymbol{\beta}^*_{LS}$ and $\boldsymbol{\beta}^*_{LA}$ obtained by minimizing $Q_{LS}(\boldsymbol{x}^*)$ and $Q_{L A}(\boldsymbol{x}^*)$ for bootstrap sample $\boldsymbol{x}^*$, respectively. In Table \ref{tab:A1boot} the variance of $\boldsymbol{\beta}_{LA}$ is slightly lower than that of $\boldsymbol{\beta}_{LS}$, and the absolute value of the bias is slightly lower as well. This suggest that the LS estimator is not optimal.
+Now we will use the residual resampling bootstrap method to evaluate the relative performance of the two parameter estimators, $\hat{\boldsymbol{\beta}}_{LS}$ and $\hat{\boldsymbol{\beta}}_{LA}$, which are calculated by the given function `ARp.beta.est`. We consider the variance and mean of $\boldsymbol{\beta}^*_{LS}$ and $\boldsymbol{\beta}^*_{LA}$ obtained by minimizing $Q_{LS}(\boldsymbol{x}^*)$ and $Q_{L A}(\boldsymbol{x}^*)$ for bootstrap sample $\boldsymbol{x}^*$, respectively. The full method is shown in Algorithm \ref{alg:A1boot}. In Table \ref{tab:A1boot} the variance of $\boldsymbol{\beta}_{LA}$ is slightly lower than that of $\boldsymbol{\beta}_{LS}$, and the absolute value of the bias is slightly lower as well. This suggest that the LS estimator is not optimal. 
+
+\begin{algorithm}
+  \caption{}
+  \begin{algorithmic}[1]
+    \For{LS and LA estimator of $\boldsymbol{\beta}$}
+      \For{$t=2,...,n$}
+        \State Define estimated residuals.
+      \EndFor
+      \State Resample $n+1$ pseudo residuals from the estimated residuals with replacement.
+      \State Generate pseudo data.
+      \For{each bootstrap sample of pseudo data}
+        \State estimate $\hat{\boldsymbol{\beta}}^*$.
+      \EndFor
+    \EndFor
+  \end{algorithmic}
+  \label{alg:A1boot}
+\end{algorithm}
 
 ```{r load, include=F}
 source("./additionalFiles/probAhelp.R")
@@ -73,7 +92,7 @@ source("./additionalFiles/probAdata.R")
 figPath = "./Figures/"
 ```
 
-```{r disipaly, fig.cap="Given dataset. write more"}
+```{r Bdisiplay, fig.cap="Given dataset. write more"}
 x = data3A$x
 plot(x, type="l", xlab = "t", ylab = "x")
 ```
@@ -123,7 +142,6 @@ beta.var = rbind(apply(boot$beta.LS, 2, var), apply(boot$beta.LA, 2, var))
 beta.bias = rbind(apply(boot$beta.LS, 2, mean) - boot$beta.hat$LS,
                   apply(boot$beta.LA, 2, mean) - boot$beta.hat$LA)
 beta.vb = cbind(beta.var, beta.bias)
-beta.vb
 rownames(beta.vb) = c("LS", "LA")
 # colnames(beta.vb) = c("var_1", "var_2", "bias_1", "bias_2")
 
@@ -147,10 +165,12 @@ set.seed(420)
 x_101.LS = vector(mode = "double", length = B)
 x_101.LA = vector(mode = "double", length = B)
 for (b in 1:B){
-  i.e = sample(98, 1)
+  # i.e = sample(98, 1)
   i.beta = sample(1500,1)
-  x_101.LS[b] = boot$beta.LS[i.beta,] %*% x[c(100,99)] + boot$e.LS[i.e]
-  x_101.LA[b] = boot$beta.LS[i.beta,] %*% x[c(100,99)] + boot$e.LA[i.e]
+  # x_101.LS[b] = boot$beta.LS[i.beta,] %*% x[c(100,99)] + boot$e.LS[i.e]
+  # x_101.LA[b] = boot$beta.LS[i.beta,] %*% x[c(100,99)] + boot$e.LA[i.e]
+  x_101.LS[b] = boot$beta.LS[i.beta,] %*% x[c(100,99)] + sample(boot$e.LS,1)
+  x_101.LA[b] = boot$beta.LS[i.beta,] %*% x[c(100,99)] + sample(boot$e.LA,1)
 }
 
 pi.boot = rbind(LS = quantile(x_101.LS, probs=c(0.025,0.975)),
@@ -159,19 +179,58 @@ kable(round(pi.boot,2), caption = "Prediction interval of $x_{101}$.")
 ```
 
 # Problem B
-We will investigate the concentration of bilirubin (mg/dL) in blood samples taken from three young men.
-
-$$
-\begin{array}{c|ccccccccccc}
-\hline \text { Individual } & {\text { Concentration }(\mathrm{mg} / \mathrm{dL})} \\
+We will investigate the concentration of bilirubin (mg/dL), which is a breakdown of haemoglobin, in blood samples taken from three young men shown in Table \ref{tab:Bdata}.
+\begin{table}
+\begin{tabular}{c|ccccccccccc}
+\hline \text { Individual } & \multicolumn{11}{c}{\text { Concentration }($\mathrm{mg} / \mathrm{dL})$} \\
 \hline 1 & 0.14 & 0.20 & 0.23 & 0.27 & 0.27 & 0.34 & 0.41 & 0.41 & 0.55 & 0.61 & 0.66 \\
 2 & 0.20 & 0.27 & 0.32 & 0.34 & 0.34 & 0.38 & 0.41 & 0.41 & 0.48 & 0.55 & \\
 3 & 0.32 & 0.41 & 0.41 & 0.55 & 0.55 & 0.62 & 0.71 & 0.91 & & & \\
 \hline
-\end{array}
-$$
-```{r display, options}
+\end{tabular}
+\caption{Concentration of bilirubin in three different individuals.}
+\label{tab:Bdata}
+\end{table}
+
+## 1 {#sec:B1}
+The logarithms of the concentration for each individual are displayed by the boxplot in Figure \ref{fig:B1display}. We see that the mean logarithm of bilirubin is smallest for individual $1$ and highest for individual $2$. The standard deviation is smallest for individual $2$ while individual $1$ have slightly larger standard deviation than individual $3$.
+```{r B1display, fig.cap="The logarithm of \\texttt{meas} for each individual."}
+ylim = c(-2.1, 0)
 bilirubin <- read.table("./additionalFiles/bilirubin.txt",header=T)
-bilirubin
-boxplot(bilirubin)
+boxplot(log(meas)~pers,data=as.data.frame(bilirubin), xlab = "Person", ylab = "log(meas)", ylim=ylim)
 ```
+
+```{r B1linFit, options}
+fitB1 = lm(log(meas)~pers, data=bilirubin)
+fitB1.Fstat = summary(fitB1)$fstatistic
+Fval = fitB1.Fstat["value"]
+Pval = pf(Fval, fitB1.Fstat[2], fitB1.Fstat[3], lower.tail = F)
+```
+Let $\mathrm{log}Y_{ij}=\mathrm{log}(\texttt{meas}_{ij})$ for individual $i=1,2,3$ and observation $j=1,...,n_i$, where $n_1=11$, $n_2=10$ and $n_3=8$. Consider the regression model
+\begin{equation}
+  \mathrm{log}Y_{ij}=\beta_i + \varepsilon_{ij},
+\end{equation}
+where $\varepsilon_{ij} \stackrel{iid}{\sim} \mathcal{N}(0,\sigma^2)$. Then, the F-statistic on $3-1$ and $29-3$ degrees of freedom of the hypothesis that $\beta_1=\beta_2=\beta_3$ is `r round(Fval)` with p-value `r round(Pval, 5)`. With the F-statistic we are investigating whether the bilirubin of each individual share significantly equally distributed. Judging from the p-value we reject the hypothesis on a $\alpha=0.05$-level. That is, on a $\alpha = 0.05$-level, the individuals do not share the same bilirubin.
+
+## 2
+To further investigate the individuals bilirubin we will consider a permutation test where the idea is that shuffling the labels will not change the joint distribution of the data. That is, we assume that the distributions are equal so that shuffling the order of the data to generate bootstrap samples should be valid. This is done by first randomly assigning bilirubin values, `meas`,  to the three individuals, then generating $B=999$ bootstrap samples. Implementation of the permutation and computation of the F-statistic is seen in the chunk below. 
+
+```{r B2perm, options}
+permTest = function(data=bilirubin){
+  bilirubin$perm = bilirubin$meas[sample(29,29)]
+  return(summary(lm(log(perm)~pers, data = bilirubin))$fstatistic["value"])
+}
+```
+
+## 3 {#sec:B3}
+We generate $B=999$ samples of the F-statistic, `Fvals`,  using the function `permTest`. Then we compute the p-value defined by `Pval`$= ($`Fvals`$\geq$`Fval`$)/B$, where `Fval` is the F-statistic found in section [B1](#sec:B1). 
+```{r B3run, options}
+set.seed(420)
+B=999
+Fvals = vector(mode = "double", length = 999)
+for (b in 1:B){
+  Fvals[b] = permTest()
+}
+Pval.perm = sum(Fvals>=Fval)/B
+```
+The p-value of the $999$ F-statistics for this run was `r round(Pval.perm,5)` which also reject the hypothesis on a $\alpha=0.05$-level. Comparing it to the p-value from section [B1](#sec:B1) we see that they are almost equal, with the value from the permutation test being slightly lower.
