@@ -50,11 +50,11 @@ library(kableExtra)
 # Introduction
 
 # Problem A
-In this problem we will analyze a dataset which contain a sequence of length $T = 100$ of a non-Gaussian time-series for which we will compare two different parameter estimators. Consider the $\mathrm{AR}(2)$ specified by the relation
-\begin{equation}
+In this problem we will analyze a dataset which contain a sequence of length $T = 100$ of a non-Gaussian time-series displayed in Figure \ref{fig:Adisiplay}, for which we will compare two different parameter estimators. Consider the autoregressive model of order 2 ($\mathrm{AR}(2)$) specified by the relation
+\begin{equation*}
   x_t = \beta_1 x_{t-1} + \beta_2 x_{t-2} + e_t,
-\end{equation}
-where $e_t$ are independent and identically distributed (iid) random variables with zero mean and constant variance. Also, consider the loss functions with respect to $\boldsymbol{\beta} = [\beta_1, \beta_2]^T$ given by
+\end{equation*}
+where $e_t$ are independent and identically distributed (iid) variables with zero mean and constant variance. Also, consider the loss functions with respect to $\boldsymbol{\beta} = [\beta_1, \beta_2]^T$ given by
 $$
 \begin{aligned}
 Q_{L S}(\boldsymbol{x})
@@ -64,27 +64,8 @@ Q_{L A}(\boldsymbol{x})
 &=\sum_{t=3}^{T}\left|x_{t}-\beta_{1} x_{t-1}-\beta_{2} x_{t-2}\right|.
 \end{aligned}
 $$
-Then, the least sum residuals (LS) and least sum of absolute residuals (LA) are obtained by minimizing $Q_{LS}(\boldsymbol{x})$ and $Q_{L A}(\boldsymbol{x})$ respectively. We denote the minimisers by $\hat{\boldsymbol{\beta}}_{LS}$ and $\hat{\boldsymbol{\beta}}_{LA}$, and define the estimated residuals by $\hat e_t = x_{t}-\hat{\beta}_{1} x_{t-1}-\hat{\beta}_{2} x_{t-2}$ for $t=3,...,T$ with mean $\bar e$. Then, $\hat \varepsilon = \hat e - \bar e$ is re-centered to have mean zero.
-
-## 1 {#sec:1}
-Now we will use the residual resampling bootstrap method to evaluate the relative performance of the two parameter estimators, $\hat{\boldsymbol{\beta}}_{LS}$ and $\hat{\boldsymbol{\beta}}_{LA}$, which are calculated by the given function `ARp.beta.est`. We consider the variance and mean of $\boldsymbol{\beta}^*_{LS}$ and $\boldsymbol{\beta}^*_{LA}$ obtained by minimizing $Q_{LS}(\boldsymbol{x}^*)$ and $Q_{L A}(\boldsymbol{x}^*)$ for bootstrap sample $\boldsymbol{x}^*$, respectively. The full method is shown in Algorithm \ref{alg:A1boot}. In Table \ref{tab:A1boot} the variance of $\boldsymbol{\beta}_{LA}$ is slightly lower than that of $\boldsymbol{\beta}_{LS}$, and the absolute value of the bias is slightly lower as well. This suggest that the LS estimator is not optimal. 
-
-\begin{algorithm}
-  \caption{}
-  \begin{algorithmic}[1]
-    \For{LS and LA estimator of $\boldsymbol{\beta}$}
-      \For{$t=2,...,n$}
-        \State Define estimated residuals.
-      \EndFor
-      \State Resample $n+1$ pseudo residuals from the estimated residuals with replacement.
-      \State Generate pseudo data.
-      \For{each bootstrap sample of pseudo data}
-        \State estimate $\hat{\boldsymbol{\beta}}^*$.
-      \EndFor
-    \EndFor
-  \end{algorithmic}
-  \label{alg:A1boot}
-\end{algorithm}
+Then, the least sum residuals (LS) and least sum of absolute residuals (LA) are obtained by minimizing $Q_{LS}(\boldsymbol{x})$ and $Q_{L A}(\boldsymbol{x})$ respectively. We denote the minimisers (our two different parameter estimators) by $\hat{\boldsymbol{\beta}}_{LS}$ and $\hat{\boldsymbol{\beta}}_{LA}$, and define the estimated residuals by $\hat e_t = x_{t}-\hat{\beta}_{1} x_{t-1}-\hat{\beta}_{2} x_{t-2}$ for $t=3,...,T$ with mean $\bar e$. 
+<!-- Then, $\hat \varepsilon = \hat e - \bar e$ is re-centered to have mean zero. -->
 
 ```{r load, include=F}
 source("./additionalFiles/probAhelp.R")
@@ -92,10 +73,31 @@ source("./additionalFiles/probAdata.R")
 figPath = "./Figures/"
 ```
 
-```{r Bdisiplay, fig.cap="Given dataset. write more"}
+```{r Adisiplay, fig.cap="The non-Gaussian time-series.", fig.width=6, fig.height=4, out.width="70%"}
 x = data3A$x
 plot(x, type="l", xlab = "t", ylab = "x")
 ```
+
+## 1 {#sec:1}
+Now we will use the residual resampling bootstrap method to evaluate the relative performance of the two parameter estimators, $\hat{\boldsymbol{\beta}}_{LS}$ and $\hat{\boldsymbol{\beta}}_{LA}$, which are calculated by the given function `ARp.beta.est` in `R`. We consider the variance and bias of the estimators $\hat{\boldsymbol{\beta}}^*_{LS}$ and $\hat{\boldsymbol{\beta}}^*_{LA}$ obtained by minimizing $Q_{LS}(\boldsymbol{x}^*)$ and $Q_{L A}(\boldsymbol{x}^*)$ respectively, for pseudo data $\boldsymbol{x}^*$. The full method is shown in Algorithm \ref{alg:A1boot}. In Table \ref{tab:A1boot} the variance of $\hat{\boldsymbol{\beta}}^*_{LA}$ is lower than that of $\hat{\boldsymbol{\beta}}^*_{LS}$, and the absolute value of the bias is lower as well. This suggest that the LS estimator is not optimal for this non-Gaussian time-series. 
+
+\begin{algorithm}
+  \caption{}
+  \begin{algorithmic}[1]
+    \For{LS and LA estimator of $\boldsymbol{\beta}$}
+      \For{$t=3,...,n$}
+        \State Define estimated residuals $\hat e_t$.
+      \EndFor
+      \For{$b = 1,...,B$}
+        \State Resample $n+1$ pseudo residuals $\hat{ \boldsymbol{e}}_b^*$ from the estimated residuals $\hat{ \boldsymbol{e}}_b$ with replacement.
+        \State Generate pseudo data $\boldsymbol{x}^*_b$.
+        \State Estimate $\hat{\boldsymbol{\beta}}^*_b$.
+      \EndFor
+    \EndFor
+  \end{algorithmic}
+  \label{alg:A1boot}
+\end{algorithm}
+
 
 ```{r A1boot, fig.cap="a1tab"}
 detach("package:dplyr", unload = T)
@@ -109,9 +111,6 @@ rsBoot = function(B, x, p=2){
   # Allocate memory
   beta.LS.star = matrix(nrow = B, ncol = 2)
   beta.LA.star = matrix(nrow = B, ncol = 2)
-  # e.LS.star = vector(mode = "double", length = B)
-  # x.LS.star = matrix(nrow = B, ncol = 2)
-  # x.LA.star = matrix(nrow = B, ncol = 2)
   
   # Bootstrap
   for (b in 1:B){
@@ -137,16 +136,14 @@ set.seed(420)
 boot = rsBoot(B, x)
 
 # Compute variance and bias
-
 beta.var = rbind(apply(boot$beta.LS, 2, var), apply(boot$beta.LA, 2, var))
 beta.bias = rbind(apply(boot$beta.LS, 2, mean) - boot$beta.hat$LS,
                   apply(boot$beta.LA, 2, mean) - boot$beta.hat$LA)
 beta.vb = cbind(beta.var, beta.bias)
 rownames(beta.vb) = c("LS", "LA")
-# colnames(beta.vb) = c("var_1", "var_2", "bias_1", "bias_2")
 
 kable(round(beta.vb,6), 
-      caption = "Variance and mean for $\\beta_1^*$ and $\\beta_2^*$.", 
+      caption = "Variance and bias for $\\hat{\\beta_1^*}$ and $\\hat{\\beta_2^*}$.", 
       format = "latex") %>% 
   kable_styling() %>%
   add_header_above(c(" ", "Var$_{1}$","Var$_{2}$","bias$_{1}$", 
@@ -155,10 +152,10 @@ kable(round(beta.vb,6),
 
 ## 2
 Next, we will compute a $95\%$ prediction interval for $x_{101}$ for both the LS and the LA estimator. That is, we bootstrap sample $B$ times
-\begin{equation}
+\begin{equation*}
   x_{101} = \beta_1^* x_{100} + \beta_2^* x_{99} + \hat{e}_{i}
-\end{equation}
-where $\beta_1^*$ and $\beta_2^*$ are sampled from all 1500 bootstrap samples found in section [A1](#sec:1), and $\hat{e}_{i}$ is sampled from the estimated residuals $\hat{e}_{t}$ for $t = 2,...,100$. The prediction intervals are found in Table \ref{tab:A1pi}.
+\end{equation*}
+where $\beta_1^*$ and $\beta_2^*$ are sampled from all `r B` bootstrap samples $\hat{\boldsymbol{\beta}}^*$ found in section [A1](#sec:1), and $\hat{e}_{i}$ is sampled from the estimated residuals $\hat{e}_{t}$ for $t = 2,...,100$. The prediction intervals are found in Table \ref{tab:A1pi}.
 ```{r A1pi, fig.cap="a1pi"}
 set.seed(420)
 # Bootstrap x_101 using beta.star and e.observed
@@ -193,8 +190,8 @@ We will investigate the concentration of bilirubin (mg/dL), which is a breakdown
 \end{table}
 
 ## 1 {#sec:B1}
-The logarithms of the concentration for each individual are displayed by the boxplot in Figure \ref{fig:B1display}. We see that the mean logarithm of bilirubin is smallest for individual $1$ and highest for individual $2$. The standard deviation is smallest for individual $2$ while individual $1$ have slightly larger standard deviation than individual $3$.
-```{r B1display, fig.cap="The logarithm of \\texttt{meas} for each individual."}
+The logarithms of the concentration for each individual are displayed in the boxplot in Figure \ref{fig:B1display}. We see that the mean logarithm of bilirubin is smallest for individual $1$ and highest for individual $2$. The variation is smallest for individual $2$ while individual $1$ have slightly larger standard deviation than individual $3$.
+```{r B1display, fig.cap="The logarithm of the concentration of bilirubin (\\texttt{meas}) for each individual.", fig.width=6, fig.height=4, out.width="70%"}
 ylim = c(-2.1, 0)
 bilirubin <- read.table("./additionalFiles/bilirubin.txt",header=T)
 boxplot(log(meas)~pers,data=as.data.frame(bilirubin), xlab = "Person", ylab = "log(meas)", ylim=ylim)
@@ -206,14 +203,14 @@ fitB1.Fstat = summary(fitB1)$fstatistic
 Fval = fitB1.Fstat["value"]
 Pval = pf(Fval, fitB1.Fstat[2], fitB1.Fstat[3], lower.tail = F)
 ```
-Let $\mathrm{log}Y_{ij}=\mathrm{log}(\texttt{meas}_{ij})$ for individual $i=1,2,3$ and observation $j=1,...,n_i$, where $n_1=11$, $n_2=10$ and $n_3=8$. Consider the regression model
+Let $\mathrm{log}Y_{ij}=\mathrm{log}(\texttt{meas}_{ij})$ for individual $i=1,2,3$ and observation $j=1,...,n_i$, where $n_1=11$, $n_2=10$ and $n_3=8$. In the chunk above we fit the regression model
 \begin{equation}
   \mathrm{log}Y_{ij}=\beta_i + \varepsilon_{ij},
 \end{equation}
-where $\varepsilon_{ij} \stackrel{iid}{\sim} \mathcal{N}(0,\sigma^2)$. Then, the F-statistic on $3-1$ and $29-3$ degrees of freedom of the hypothesis that $\beta_1=\beta_2=\beta_3$ is `r round(Fval)` with p-value `r round(Pval, 5)`. With the F-statistic we are investigating whether the bilirubin of each individual share significantly equally distributed. Judging from the p-value we reject the hypothesis on a $\alpha=0.05$-level. That is, on a $\alpha = 0.05$-level, the individuals do not share the same bilirubin.
+where $\varepsilon_{ij} \stackrel{iid}{\sim} \mathcal{N}(0,\sigma^2)$. Then, the F-statistic on $3-1$ and $29-3$ degrees of freedom of the hypothesis that $\beta_1=\beta_2=\beta_3$ is `r round(Fval,2)` with p-value `r round(Pval, 5)`. With the F-statistic we are investigating whether the bilirubin of each individual are significantly equally distributed. Judging from the p-value we reject the hypothesis on a $\alpha=0.05$-level. That is, on a $\alpha = 0.05$-level, the individuals do not share the same concentration of bilirubin.
 
 ## 2
-To further investigate the individuals bilirubin we will consider a permutation test where the idea is that shuffling the labels will not change the joint distribution of the data. That is, we assume that the distributions are equal so that shuffling the order of the data to generate bootstrap samples should be valid. This is done by first randomly assigning bilirubin values, `meas`,  to the three individuals, then generating $B=999$ bootstrap samples. Implementation of the permutation and computation of the F-statistic is seen in the chunk below. 
+To further investigate the individuals bilirubin we will consider a permutation test where the idea is that shuffling the labels will not change the joint distribution of the data. That is, we assume that the distributions are equal so that shuffling the order of the data to generate bootstrap samples should be valid. This is done by first randomly assigning bilirubin values, `meas`,  to the three individuals. then we generate $B=999$ bootstrap samples. Implementation of the permutation and computation of the F-statistic is seen in the chunk below. 
 
 ```{r B2perm, options}
 permTest = function(data=bilirubin){
