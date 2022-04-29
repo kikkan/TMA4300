@@ -1,7 +1,7 @@
 ---
-title: "Title"
-author: "Christian Oppegård Moen"
-date: "DD MM YYYY"
+title: "Exercise 3"
+author: "Erling Fause Steen, Christian Oppegård Moen"
+date: "Spring 2022"
 output: 
   bookdown::pdf_document2:
     toc_depth: '3'
@@ -9,12 +9,14 @@ output:
   # pdf_document:
   # #   toc: no
   #   toc_depth: '3'
-subtitle: Course
+subtitle: TMA4300
 urlcolor: blue
 editor_options: 
   chunk_output_type: console
 header-includes:
 - \usepackage[width=0.8\textwidth]{caption}
+- \usepackage{algorithm}
+- \usepackage{algpseudocode}
 ---
 
 ```{r setup, include=FALSE}
@@ -31,24 +33,124 @@ knitr::opts_chunk$set(
   fig.align = "center"
 )
 ```
-
-```{r load, options}
-source("./additionalFiles/probAhelp.R")
-source("./additionalFiles/probAdata.R")
-figPath = "./Figures/"
+\newpage
+```{r config, include=F}
+if (F){
+  setwd("C:/Users/chris/OneDrive/Documents/Fysmat/8 Semester V2022/Ber. Stat. Met/TMA4300/Exe3bsm/")
+  options(error=recover)
+  options(error=NULL)
+}
 ```
+
+```{r packages, include=F}
+library(knitr)
+library(kableExtra)
+```
+
+
+
+# Problem C: The EM-algorithm and bootstrapping
+
+## 1.
+
+Let $x_1,...x_n$ and $y_1,...,y_n$ be independet random variables, where
+$$
+x_i \sim \text{Exp}(\lambda_0) \ \ \text{and} \ \ y_i \sim \text{Exp}(\lambda_1)
+$$
+
+We observe
+
+$$
+z_i =\text{max}(x_i, y_i) \ \ \text{for} \ \ i=1,...,n
+$$
+
+and
+
+$$
+u_i=I(x_i \geq y_i) \ \ \text{for} \ \ i=1,...,n.
+$$
+
+The joint distribution of $(x_i, y_i),i=1,..n$ is given by
+
+$$
+f(x, y | \lambda_0, \lambda_1)=\prod_{i=1}^{n} f_{x}(x_i | \lambda_0) \cdot f_{y}(y_i|\lambda_1)
+$$
+$$
+=\prod_{i=1}^{n}\lambda_0 e^{-\lambda_0 x_i} \cdot \lambda_1 e^{-\lambda_1 y_i}.
+$$
+This means that the log likelihood is given by
+$$
+\ln f(x,y|\lambda_0, \lambda_1)=\sum_{i=1}^{n} \ln \lambda_0+ \ln \lambda_1-\lambda_0 x_i - \lambda_1 y_i=n(\ln \lambda_0+ \ln \lambda_1)-\lambda_0\sum_{i=1}^n x_i -\lambda_1\sum_{i=1}^n y_i \quad.
+$$
+We want to find
+$$
+E\left[ \ln f(x,y|\lambda_0, \lambda_1)| z, u, \lambda_0^{(t)}, \lambda_1^{(t)} \right].
+$$
+which is given by
+
+$$
+Q(\lambda_0, \lambda_1 | \lambda_0^{(t)}, \lambda_1^{(t)})=E \left[\sum_{i=1}^{n}n(\ln \lambda_0+ \ln \lambda_1)-\lambda_0\sum_{i=1}^n x_i -\lambda_1\sum_{i=1}^n y_i \ \ | \ \ z,u,\lambda_0^{(t)}, \lambda_1^{(t)} \right]
+$$
+$$
+=n(\ln\lambda_0+\ln\lambda_1) -\lambda_0\sum_{i=1}^n E(x_i\mid z_i,u_i,\lambda_0^{(t)},\lambda_1^{(t)}) -\lambda_1\sum_{i=1}^n E(y_i\mid z_i,u_i,\lambda_0^{(t)},\lambda_1^{(t)}).
+$$
+
+Now, we want to find $E(x_i\mid z_i,u_i,\lambda_0^{(t)},\lambda_1^{(t)})$ and $E(y_i\mid z_i,u_i,\lambda_0^{(t)},\lambda_1^{(t)}).$ We start by considering the first conditional expectation. This can found by first considering
+$$
+\begin{aligned}
+  f(x_i\mid z_i,u_i,\lambda_0^{(t)},\lambda_1^{(t)})  
+  &= \begin{cases} z_i \quad \quad \quad \quad \quad \text{for} & u_i=1 \\ \frac{\lambda_0^{(t)}\exp(-\lambda_0^{(t)}x_i)}{1-\exp(-\lambda_0^{(t)}z_i)} \ \ \text{for} & u_i=0 \end{cases} \quad.
+\end{aligned}
+$$
+The expectation is given by
+
+$$
+E[x_i|z_i, u_i, \lambda_0^{(t)}, \lambda_1^{(t)}]=u_i z_i + (1-u_i)\int_{0}^{z_i} x_i \frac{\lambda_0^{(t)}\exp(-\lambda_0^{(t)}x_i)}{1-\exp(-\lambda_0^{(t)}z_i)} dx_i
+$$
+where
+
+$$
+\int_{0}^{z_i} x_i \frac{\lambda_0^{(t)}\exp(-\lambda_0^{(t)}x_i)}{1-\exp(-\lambda_0^{(t)}z_i)} dx_i=
+\frac{- z_i\lambda_0^{(t)}\exp(-\lambda_0^{(t)} z_i)-\exp(-\lambda_0^{(t) }z_i)+1}{\lambda_0^{t}(-\exp(-\lambda_0^{(t)} z_i)+1)}
+$$
+$$
+=\frac{1}{\lambda_0^{(t)}}-\frac{z_i}{\lambda_0^{(t)}(1-\exp(-\lambda_0^{(t)}))}
+$$
+We also need to find $E[y_i|z_i, u_i, \lambda_0^{(t)}, \lambda_1^{(t)}]$. We first consider the pdf
+
+$$
+\begin{aligned}
+  f(y_i\mid z_i,u_i,\lambda_0^{(t)},\lambda_1^{(t)})  
+  &= \begin{cases} z_i \quad \quad \quad \quad \quad \text{for} & u_i=1 \\ \frac{\lambda_1^{(t)}\exp(-\lambda_1^{(t)}y_i)}{1-\exp(-\lambda_1^{(t)}z_i)} \ \ \text{for} & u_i=0 \end{cases} \quad.
+\end{aligned}
+$$
+Then we find the expectation
+
+$$
+E[y_i| z_i, u_i, \lambda_0^{(t)}, \lambda_1^{(t)}]=(1-u_i)z_i + u_i \left(\frac{1}{\lambda_1^{(t)}} - \frac{z_i}{\exp(\lambda_1^{(t)}z_i)-1} \right)
+$$
+
+Thus, we end up with the expression 
+
+$$
+E[\ln f(\textbf{x}, \textbf{y}|\lambda_0, \lambda_1)|\textbf{z}, \textbf{u}, \lambda_0^{(t)}, \lambda_1^{(t)}]
+$$
+$$
+=n(\ln \lambda_0 + \ln \lambda_1)- \lambda_0 \sum_{i=1}^{n} \left [\frac{1}{\lambda_0^{(t)}}-\frac{z_i}{\lambda_0^{(t)}(1-\exp(-\lambda_0^{(t)}))} \right ]-\lambda_1 \sum_{i=1}^{n} \left [\frac{1}{\lambda_0^{(t)}}-\frac{z_i}{\lambda_0^{(t)}(1-\exp(-\lambda_0^{(t)}))} \right ].
+$$
+This is what we expected to find.
 
 ## 2.
 
 
 
-In this problem we want to implement the EM-algorithm. We have found the conditional expectation $Q(\lambda_0,\lambda_1)=Q(\lambda_0, \lambda_1 | \lambda_0^{(t)}, \lambda_1^{(t)}).$ This corresponds to the E-step in the EM algorithm. In the M-step of the algorithm is to determine 
+In this problem we want to implement the EM-algorithm. We have found the conditional expectation $Q(\lambda_0,\lambda_1)=Q(\lambda_0, \lambda_1 | \lambda_0^{(t)}, \lambda_1^{(t)}).$ This corresponds to the E-step in the EM algorithm.  The M-step of the algorithm is to determine 
 
 $$
 (\lambda_0^{(t+1)}, \lambda_1^{(t+1)})=\text{argmax} \ \ Q(\lambda_0, \lambda_1).
 $$
 
-This can be found be finding the partial derivates and $Q(\lambda_0, \lambda_1)$ and set them equal to zero. 
+This can be found by setting the partial derivates and $Q(\lambda_0, \lambda_1)$ equal to zero. 
 
 $$
 \frac{\partial}{\partial \lambda_0} Q(\lambda_0, \lambda_1)=
@@ -76,8 +178,8 @@ d(x^{(t+1)}, x^{t})= || {\lambda}^{(t+1)} - {\lambda}^{(t)}||_2<\epsilon.
 $$
 
 ```{r dataC, include=FALSE}
-u<-read.csv("./additionalFiles/u.txt")
-z<-read.csv("./additionalFiles/z.txt")
+u<-read.csv("./additionalFiles/u.txt", header=FALSE)
+z<-read.csv("./additionalFiles/z.txt", header=FALSE)
 ```
 
 The function below returns the conditional expectation, that is the E-step of the EM algorithm.
@@ -95,7 +197,7 @@ Under is a function that implement M-step.
 ```{r}
 M_step<- function(lam0,lam1,u,z)
 {
-  n=199
+  n = 200
   lambda0next= n/sum(u*z + (1 - u)*(1/lam0 - z/(exp(lam0*z) - 1)))
   lambda1next=  n / sum((1 - u)*z + u*(1/lam1 - z/(exp(lam1*z) - 1)))
 
@@ -159,18 +261,52 @@ ggplot(data=lambdas)+
 ```
 
 
-## 4.
+## 3.
 
-We want to find an analytical formula for $f_{Z_i,U_i}(z_i, u_i| \lambda_0, \lambda_1).$
+In this task, the standard deviations and biases of $\hat{\lambda_0}$ and $\hat{\lambda_1}$ in addition to $\text{corr} [\hat{\lambda_0}, \hat{\lambda_1}]$ are estimated by using bootstrap. The pseudocode for the bootstrap algorithm is presented below.
 
-$$
-f_{Z_i,U_i}(z_i, u_i | \lambda_0, \lambda_1)=P(\text{max}(X_i, Y_i)=z , I(X_i \geq Y_i)=u_i | \lambda_0, \lambda_1)
-$$
-$$
-=u_i P(\text{max}(X_i, Y_i)=z_i, X)
-$$
+\begin{algorithm}
+  \caption{algorithm}
+  \begin{algorithmic}[1]
+    \For{$b = 1,...,B$}
+      \State Bootstrap sample $( {z}_b^*, {u}_b^*)$ from $( \boldsymbol{z}, \boldsymbol{u})$ with replacement.
+      \State Estimate $(\hat{\lambda}_0, \hat{\lambda}_1)$ by EM-algorithm using $( {z}_b^*, {u}_b^*)$.
+    \EndFor
+  \end{algorithmic}
+  \label{alg:C3boot}
+\end{algorithm}
 
+The algorithm is then implemented
 
+```{r}
+B = 200 # Seldom needed more samples
+n = length(u$V1) # length of lambdas0 from EM
+t = length(lambdas$lambdas0)
+
+set.seed(420)
+lambda.T = matrix(nrow = B, ncol = 2)
+for (i in 1:B){
+  # browser()
+  Bs = sample(n, n, replace = TRUE)
+  lt = EM_algorithm(c(2.5,5),u$V1[Bs],z$V1[Bs])
+  lambda.T[i,] = cbind(lt$lambdas0[length(lt$lambdas0)],
+                       lt$lambdas1[length(lt$lambdas1)])
+}
+
+mu.boot = apply(lambda.T, 2, mean)
+l.var.boot = var(lambda.T)
+var.boot = sqrt(diag(l.var.boot))
+bias.boot = mu.boot - c(lambdas$lambdas0[length(lambdas$lambdas0)],
+                        lambdas$lambdas1[length(lambdas$lambdas1)])
+var.boot
+bias.boot
+sd(lambda.T)
+cor(lambda.T)
+```
+
+```{r}
+var.boot
+```
 
 ## 4.
 
@@ -218,32 +354,38 @@ The log likelihood is therefore given by
 
 $$
 \begin{aligned}
-l(\lambda_0,\lambda_1|\mathbf{z},\mathbf{u}) &= \sum_{i:u_i=0} \left(  \ln(\lambda_1)-\lambda_1z_i+\ln(1-e^{-\lambda_0z_i}) \right) + \sum_{i:u_i=1} \left(  \ln(\lambda_0)-\lambda_0z_i+\ln(1-e^{-\lambda_1z_i}) \right)\\
-&= n_0\ln(\lambda_1) + n_1 \ln(\lambda_0) +\sum_{i:u_i=0} \left(\ln(1-e^{-\lambda_0z_i})-\lambda_1z_i \right) + \sum_{i:u_i=1} \left(\ln(1-e^{-\lambda_1z_i})-\lambda_0z_i \right),
+l(\lambda_0,\lambda_1|\mathbf{z},\mathbf{u}) &= \sum_{i:u_i=0} \left(  \ln(\lambda_1)-\lambda_1z_i+\ln(1-e^{-\lambda_0z_i}) \right) + \sum_{i:u_i=1} \left(  \ln(\lambda_0)-\lambda_0z_i+\ln(1-e^{-\lambda_1z_i}) \right)
 \end{aligned}
 $$
 
-where $n_0=\sum_{i=1}^n \text{I}(u_i=0)$ and $n_1=\sum_{i=1}^n \text{I}(u_i=1)$.
 
-To find the maximum likelihood estimators $\hat{\lambda}_0$ and $\hat{\lambda}_1$ we need to solve, 
+The maximum likelihood estimators can be found by solving
 
 $$
-\frac{\partial l(\lambda_0,\lambda_1|\mathbf{z},\mathbf{u})}{\partial\lambda_0} = \frac{n_1}{\lambda_0} + \sum_{i:u_i=0} \frac{z_i e^{\lambda_0z_i}}{e^{\lambda_0z_i}-1} - \sum_{i:u_i=1} z_i =0
-$$ 
+\frac{\partial l(\lambda_0,\lambda_1|\mathbf{z},\mathbf{u})}{\partial\lambda_0}=0
+$$
+
+and
+
+$$
+\frac{\partial l(\lambda_0,\lambda_1|\mathbf{z},\mathbf{u})}{\partial\lambda_1}=0.
+$$
+The equations become
+$$
+\frac{\partial l(\lambda_0,\lambda_1|\mathbf{z},\mathbf{u})}{\partial\lambda_0}=
+\sum_{i:u_i=0}^{n} \frac{z_i \exp(\lambda_0 z_i)}{\exp(\lambda_0 z_i)-1}+\sum_{i:u_i=1}^{n} \frac{1}{\lambda_0}-z_i=0
+$$
 and
 $$
-\frac{\partial l(\lambda_0,\lambda_1|\mathbf{z},\mathbf{u})}{\partial\lambda_1} = \frac{n_0}{\lambda_1} + \sum_{i:u_i=1} \frac{z_i e^{\lambda_0z_i}}{e^{\lambda_0z_i}-1} - \sum_{i:u_i=0} z_i =0.
-$$ 
-To be sure it is possible to solve the optimization problem, we find the Hessian
+\frac{\partial l(\lambda_0,\lambda_1|\mathbf{z},\mathbf{u})}{\partial\lambda_1}=
+\sum_{i:u_i=1}^{n} \frac{z_i \exp(\lambda_0 z_i)}{\exp(\lambda_0 z_i)-1}+\sum_{i:u_i=0}^{n} \frac{1}{\lambda_0}-z_i=0
 $$
-\nabla^2l(\lambda_0,\lambda_1|\mathbf{z},\mathbf{u}) = \begin{bmatrix}
--\frac{n_1}{\lambda_0^2} - \sum_{i:u_i=0}\frac{z_i^2e^{\lambda_0z_i}}{(e^{\lambda_0z_i}-1)^2} & 0 \\
-0 & -\frac{n_0}{\lambda_1^2} - \sum_{i:u_i=1}\frac{z_i^2e^{\lambda_1z_i}}{(e^{\lambda_1z_i}-1)^2}
-\end{bmatrix}.
+We solve this numerically. To check whether the soutions are maximas, we consider the Hessian.
+
+
 $$
 
-Since the Hessian is negative definite, there is only one maxima and it is possible to solve the optimization problem. We have solved the problem numerically with the $\texttt{optim}$ function in R. 
-
+$$
 
 ```{r}
 # Find the z-values where u=0 and where u=1
