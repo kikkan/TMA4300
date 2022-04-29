@@ -93,80 +93,72 @@ return(exp)
 
 Under is a function that implement M-step.
 ```{r}
-M_step<- function(lambda0t,lambda1t,u,z)
+M_step<- function(lam0,lam1,u,z)
 {
-  n=length(u)
-  lambda0next=n/(sum(u*z+(1-u)*(1/lambda0t-(z)/(exp(lambda0t*z)-1))))
-  lambda1next=n/(sum((1-u)*z+u*(1/lambda1t-(z)/(exp(lambda1t*z)-1))))
-  
-  return(list(lambda0=lambda0next, lambda1=lambda1next))
-}
+  n=199
+  lambda0next= n/sum(u*z + (1 - u)*(1/lam0 - z/(exp(lam0*z) - 1)))
+  lambda1next=  n / sum((1 - u)*z + u*(1/lam1 - z/(exp(lam1*z) - 1)))
 
-lambda0=2
-lambda1=3
-list0<-c()
-list1<-c()
-for (i in 1:10) {
-  lambda0=M_step(lambda0,lambda1,u,z)$lambda0
-  lambda1=M_step(lambda0,lambda1,u,z)$lambda1
-  list0<-c(list0,lambda0)
-  list1<-c(list1,lambda1)
+  return(c(lambda0next,lambda1next))
 }
-list0
 ```
 
+Under the EM algorithm is implemented.
+
 ```{r}
-EM_algorithm<- function(lambda,u,z, epsilon=10e-5)
+EM_algorithm<- function(lambda,u,z, epsilon=10e-15)
 {
   lambda0=lambda[1]
   lambda1=lambda[2]
+  lambda=c(lambda0,lambda1)
   list0<-c()
   list1<-c()
-  for (i in 1:30) {
-    lambda0=M_step(lambda0,lambda1,u,z)$lambda0
-    lambda1=M_step(lambda0,lambda1,u,z)$lambda1
-    list0<-c(list0,lambda0)
-    list1<-c(list1,lambda1)
+  for (i in 1:300) {
+    lambda0t=M_step(lambda0,lambda1,u,z)[1]
+    lambda1t=M_step(lambda0,lambda1,u,z)[2]
+    lambdat=c(lambda0t,lambda1t)
+    list0<-c(list0,lambda0t)
+    list1<-c(list1,lambda1t)
+    norm=norm(lambdat-lambda, type="2")
+    lambda0=lambda0t
+    lambda1=lambda1t
+    lambda=c(lambda0t,lambda1t)
+    if(norm<epsilon)
+    {
+      break
+    }
 }
   return(list(lambdas0=list0, lambdas1=list1))
 }
-```
 
-
-Under the EM algorithm is implemented
-
-```{r}
-ME_algorithm<- function(lambda,u,z, epsilon=10e-5)
-{
-  i=0
-  lambda0=lambda[0]
-  lambda1=lambda[1]
-  lambda=c(lambda0,lambda1)
-  lambdas0=c()
-  lambdas1=c()
-  norm=-Inf
-  for(i in 1:50)
-  {
-    #M-step
-    lambda0t=M_step(lambda0,lambda1,u,z)$lambda0
-    lambda1t=M_step(lambda0,lambda1,u,z)$lambda1
-    lambdas0=c(lambdas0,lambda0t)
-    lambdas1=c(lambdas1,lambda1t)
-    lambdat=c(lambda0t,lambda1t)
-    #convergence
-    
-    norm=norm(lambdat-lambda, type="2")
-    lambda=lambdat
-  }
-  return(list(lambdas0=lambdas0, lambdas1=lambdas1))
-}
-```
-
-
-```{r}
+#The estimated MLEs of lambda0 and lambda1
 lambdas<-EM_algorithm(c(2.5,5),u,z)
-lambdas$lambdas1
+lambdas0=lambdas$lambdas0
+lambdas1=lambdas$lambdas1
+MLE_lambda0=lambdas0[length(lambdas0)]
+MLE_lambda1=lambdas1[length(lambdas1)]
 ```
+
+```{r}
+MLE_lambda0
+MLE_lambda1
+```
+
+The maaximum likelihood estimates for $\lambda_0$ is `r MLE_lambda0` and `r MLE_lambda1` for $\lambda_1$.
+
+We also want to visualize the covergence.
+
+```{r}
+library(ggplot2)
+lambdas=data.frame(lambdas)
+ggplot(data=lambdas)+
+  geom_point(mapping=aes(x=1:33,y=lambdas0))
+
+ggplot(data=lambdas)+
+  geom_point(mapping=aes(x=1:33,y=lambdas1))
+```
+
+
 ## 4.
 
 We want to find an analytical formula for $f_{Z_i,U_i}(z_i, u_i| \lambda_0, \lambda_1).$
@@ -178,5 +170,99 @@ $$
 =u_i P(\text{max}(X_i, Y_i)=z_i, X)
 $$
 
+
+
+## 4.
+
+We want to find an analytical formula of $f_{Z_i,U_i}(z_i, u_i| \lambda_0, \lambda_1).$
+We start by looking at the case where $u_i=0,$ and thus $z_i=y_i.$ The cdf is given by
+
+$$
+F_{Z_i}(z_i | u_i=0)=P(Y_i \leq z_i |X_i \leq y_i)=\int_{0}^{z_i} \int_{0}^{y_i} f_{Y_i}(y_i| \lambda_1) f_{X_i}(x_i|\lambda_0) d x_i d y_i
+$$
+$$
+=\int_{0}^{z_i} \int_{0}^{y_i} \lambda_1 \exp(-\lambda_1 y_i) \lambda_0 \exp(-\lambda_0 x_i)
+=\int_{0}^{z_i} \lambda_1 \exp({-\lambda_1 y_i})(1-\exp(-\lambda_0 y_i)) d y_i
+$$
+$$
+=- \lambda_1 \cdot \frac{\exp(- \lambda_1 z_i - \lambda_0 z_i)-1}{-\lambda_1- \lambda_0}-\exp(-\lambda_1 z_i)+1
+$$
+$$
+\implies f(z_i|u_i=0)=\frac{\text{d}F_{Z_i}(z_i|u_i=0)}{\text{d}z_i}=\exp(-\lambda_1 z_i)\lambda_1(1-\exp(-\lambda_0 z_i))
+$$
+For $u_i=1,$ we have 
+$$
+  F_{Z_i}(z_i|u_i=1) =P(X_i\leq z_i,Y_i\leq x_i) 
+=\int_0^{z_i} \int_0^{x_i} f_{X_i}(x_i|\lambda_0)f_{Y_i}(y_i|\lambda_1) \text{dy}_i \text{dx}_i 
+$$
+$$
+=-\lambda_0 \frac{exp(-z_i \lambda_0- z_i \lambda_1)-1}{-\lambda_0-\lambda_1}+1
+$$
+$$
+ \implies f(z_i|u_i=1)=\frac{\text{d}F_{Z_i}(z_i|u_i=1)}{\text{d}z_i}=\exp(-\lambda_0 z_i)\lambda_0(1-\exp(-\lambda_1 z_i))
+$$
+The likelihood is given by
+
+$$
+L(\lambda_0,\lambda_1|\mathbf{z},\mathbf{u}) = \prod_{i=0}^n f_{Z_i,U_i}(z_i,u_i|\lambda_0,\lambda_1)
+$$
+where 
+$$
+f_{Z_i,U_i}(z_i,u_i|\lambda_0,\lambda_1)=
+\begin{cases} 
+\lambda_1 e^{-\lambda_1z_i}(1-e^{-\lambda_0z_i}), \quad u_i=0 \\
+\lambda_0 e^{-\lambda_0z_i}(1-e^{-\lambda_1z_i}), \quad u_i=1.
+\end{cases}
+$$
+The log likelihood is therefore given by
+
+$$
+\begin{aligned}
+l(\lambda_0,\lambda_1|\mathbf{z},\mathbf{u}) &= \sum_{i:u_i=0} \left(  \ln(\lambda_1)-\lambda_1z_i+\ln(1-e^{-\lambda_0z_i}) \right) + \sum_{i:u_i=1} \left(  \ln(\lambda_0)-\lambda_0z_i+\ln(1-e^{-\lambda_1z_i}) \right)\\
+&= n_0\ln(\lambda_1) + n_1 \ln(\lambda_0) +\sum_{i:u_i=0} \left(\ln(1-e^{-\lambda_0z_i})-\lambda_1z_i \right) + \sum_{i:u_i=1} \left(\ln(1-e^{-\lambda_1z_i})-\lambda_0z_i \right),
+\end{aligned}
+$$
+
+where $n_0=\sum_{i=1}^n \text{I}(u_i=0)$ and $n_1=\sum_{i=1}^n \text{I}(u_i=1)$.
+
+To find the maximum likelihood estimators $\hat{\lambda}_0$ and $\hat{\lambda}_1$ we need to solve, 
+
+$$
+\frac{\partial l(\lambda_0,\lambda_1|\mathbf{z},\mathbf{u})}{\partial\lambda_0} = \frac{n_1}{\lambda_0} + \sum_{i:u_i=0} \frac{z_i e^{\lambda_0z_i}}{e^{\lambda_0z_i}-1} - \sum_{i:u_i=1} z_i =0
+$$ 
+and
+$$
+\frac{\partial l(\lambda_0,\lambda_1|\mathbf{z},\mathbf{u})}{\partial\lambda_1} = \frac{n_0}{\lambda_1} + \sum_{i:u_i=1} \frac{z_i e^{\lambda_0z_i}}{e^{\lambda_0z_i}-1} - \sum_{i:u_i=0} z_i =0.
+$$ 
+To be sure it is possible to solve the optimization problem, we find the Hessian
+$$
+\nabla^2l(\lambda_0,\lambda_1|\mathbf{z},\mathbf{u}) = \begin{bmatrix}
+-\frac{n_1}{\lambda_0^2} - \sum_{i:u_i=0}\frac{z_i^2e^{\lambda_0z_i}}{(e^{\lambda_0z_i}-1)^2} & 0 \\
+0 & -\frac{n_0}{\lambda_1^2} - \sum_{i:u_i=1}\frac{z_i^2e^{\lambda_1z_i}}{(e^{\lambda_1z_i}-1)^2}
+\end{bmatrix}.
+$$
+
+Since the Hessian is negative definite, there is only one maxima and it is possible to solve the optimization problem. We have solved the problem numerically with the $\texttt{optim}$ function in R. 
+
+
+```{r}
+# Find the z-values where u=0 and where u=1
+
+z_0=z[u==0]
+z_1=z[u==1]
+
+l<-function(lambdas)
+{
+  ll <- sum(log(lambdas[2] * exp(-lambdas[2]*z_0) * (1 - exp(-lambdas[1]*z_0)))) +
+sum(log(lambdas[1] * exp(-lambdas[1]*z_1) * (1 - exp(-lambdas[2]*z_1))))
+  return(-ll)
+}
+
+lambdas=optim(par=c(1,1), fn=l)$par
+```
+
+The maximum likelihood estimator of $\lambda_0$ is `r lambdas[1]` and the maximum likelihood estimator of $\lambda_1$ is `r lambdas[2]`.
+
+The difference from the values obtained for the EM algorithm is very small. An advantage of using this approach compared is that it is less computationally expensive. The EM algorithm can be slow. 
 
 
